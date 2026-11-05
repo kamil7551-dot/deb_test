@@ -61,3 +61,36 @@ jobs:
           path: live-build/build.log
           retention-days: 7
           if-no-files-found: ignore
+
+  boot-test:
+    needs: iso
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [bios, uefi, secureboot]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: itad-tester-iso
+          path: out
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install QEMU and OCR
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            qemu-system-x86 qemu-utils ovmf tesseract-ocr tesseract-ocr-pol imagemagick mtools dosfstools socat
+      - name: Boot test (${{ matrix.mode }})
+        run: tools/qemu-boot-test.sh out/*.iso ${{ matrix.mode }} out/boot-${{ matrix.mode }}
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: boot-${{ matrix.mode }}
+          path: out/boot-${{ matrix.mode }}
+          retention-days: 7

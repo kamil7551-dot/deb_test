@@ -32,7 +32,8 @@ move answered questions to Decisions.
 
 ## Phase 4 — Field testing and 1.0 (next)
 
-- [ ] First green ISO build in CI; record real ISO size here
+- [x] First green ISO build in CI: 602 MiB (2026-11-05, Debian trixie, kernel 6.12)
+- [ ] Automated QEMU boot test in CI (BIOS, UEFI, UEFI + Secure Boot) reaches the start screen
 - [ ] Test on at least: one Dell, one HP, one Lenovo laptop, one desktop, one legacy-BIOS-only machine
 - [ ] Fix issues, measure boot time and full-run time, tag v1.0
 
@@ -61,6 +62,7 @@ move answered questions to Decisions.
 
 ## Changelog
 
+- 2026-11-05 — CI: QEMU boot test (BIOS / UEFI / Secure Boot) with OCR of the start screen; first ISO 602 MiB.
 - 2026-11-05 — v0.1.0: engine, 13 modules (7 auto, 6 interactive), GTK4 UI, ProSpectra client + offline queue,
   live-build config, build/USB scripts, CI (tests + ISO). Not yet booted on real hardware.
 - 2026-11-05 — Repository started with `AGENTS.md`, `INSTRUCTIONS.md`, `ROADMAP.md` (planning only, no code yet).
