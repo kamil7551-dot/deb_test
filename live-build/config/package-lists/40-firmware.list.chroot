@@ -1,0 +1,12 @@
+# Firmware: the largest part of the image (~250-400 MB compressed). Extra/split packages that may not
+# exist in every Debian release are installed by hooks/normal/0100-optional-firmware.hook.chroot.
+firmware-linux-free
+firmware-misc-nonfree
+firmware-amd-graphics
+firmware-realtek
+firmware-iwlwifi
+firmware-atheros
+firmware-brcm80211
+firmware-intel-sound
+firmware-sof-signed
+firmware-mediatek

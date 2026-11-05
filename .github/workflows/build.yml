@@ -1,0 +1,63 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install pyyaml pytest pyflakes
+      - name: Lint
+        run: python -m pyflakes app/tester app/tests
+      - name: Unit tests
+        run: cd app && python -m pytest -q tests
+      - name: Headless smoke run (no hardware)
+        run: |
+          cd app
+          TESTER_DATA_DIR=$RUNNER_TEMP/td TESTER_PROFILES=../profiles TESTER_STATE_FILE=$RUNNER_TEMP/td/state.yaml \
+            python -m tester --headless --profile quick --serial CI-TEST-0001 --out $RUNNER_TEMP/report.json
+          python -c "import json,sys; r=json.load(open('$RUNNER_TEMP/report.json')); assert r['serial']=='CI-TEST-0001' and r['run_id']"
+
+  iso:
+    needs: test
+    runs-on: ubuntu-latest
+    container:
+      image: debian:trixie
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install live-build
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            live-build debootstrap xorriso squashfs-tools mtools dosfstools isolinux syslinux-common \
+            syslinux-utils grub-efi-amd64-bin grub-pc-bin cpio ca-certificates python3
+      - name: Build ISO
+        run: tools/build-iso.sh
+      - name: Upload ISO
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: itad-tester-iso
+          path: |
+            out/*.iso
+            out/*.sha256
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-build-log
+          path: live-build/build.log
+          retention-days: 7
+          if-no-files-found: ignore

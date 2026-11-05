@@ -1,0 +1,7 @@
+# Station configuration. Copy the TESTERCFG folder to a partition labelled TESTERCFG
+# (or to the root of a Ventoy / second USB stick) and edit the values.
+station: Stanowisko 1
+operator_prompt: true          # ask for the operator name on the start screen
+default_profile: null          # null = pick by chassis type (laptop_full / desktop)
+prospectra:
+  base_url: https://prospectra-ai.app/api/ext/v1

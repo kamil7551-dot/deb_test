@@ -1,0 +1,36 @@
+window { background: #15181d; color: #e8eaed; font-size: 15pt; }
+label.title { font-size: 28pt; font-weight: 700; }
+label.subtitle { font-size: 17pt; color: #b8bec7; }
+label.muted { color: #8a919b; font-size: 12pt; }
+label.section { font-size: 13pt; font-weight: 700; color: #8a919b; }
+label.hint { font-size: 14pt; color: #c9cdd3; }
+label.big { font-size: 22pt; font-weight: 700; }
+
+button { padding: 10px 18px; border-radius: 8px; font-size: 15pt; }
+button.profile { padding: 18px 26px; font-size: 18pt; min-width: 260px; }
+button.suggested-action, button.primary { background: #2b6cd8; color: white; }
+button.pass { background: #1f8f4e; color: white; font-weight: 700; min-width: 180px; }
+button.fail { background: #c8352e; color: white; font-weight: 700; min-width: 180px; }
+button.grade { min-width: 90px; font-size: 20pt; font-weight: 700; }
+button.grade:checked { background: #2b6cd8; color: white; }
+
+entry { font-size: 18pt; padding: 8px; }
+.panel { background: #1e2228; border-radius: 10px; padding: 16px; }
+.sidebar { background: #1b1f25; }
+.sidebar row { padding: 6px 10px; }
+
+label.st-pass { color: #39c46f; font-weight: 700; }
+label.st-fail { color: #ff5a4f; font-weight: 700; }
+label.st-warn { color: #f2b33d; font-weight: 700; }
+label.st-skip { color: #8a919b; }
+label.st-run { color: #6aa5ff; }
+
+.key { background: #2a2f37; border-radius: 6px; padding: 8px 4px; min-width: 46px; font-size: 12pt; color: #e8eaed; }
+.key.wide { min-width: 80px; }
+.key.space { min-width: 380px; }
+.key.optional { background: #22262c; color: #8a919b; }
+.key.hit { background: #1f8f4e; color: white; }
+
+.indicator { background: #2a2f37; border-radius: 8px; padding: 10px 16px; }
+.indicator.hit { background: #1f8f4e; color: white; }
+button:disabled { opacity: 0.45; }

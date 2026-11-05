@@ -1,0 +1,11 @@
+#!/bin/sh
+# Install the tester app (copied to /opt/tester by tools/build-iso.sh) and enable its services.
+set -e
+chmod 0755 /usr/local/bin/itad-tester
+python3 -m compileall -q /opt/tester/tester || true
+systemctl enable itad-tester-setup.service itad-tester.service NetworkManager.service systemd-timesyncd.service
+systemctl set-default multi-user.target
+# Not needed in a RAM-only kiosk
+systemctl mask apt-daily.timer apt-daily-upgrade.timer man-db.timer e2scrub_all.timer fstrim.timer 2>/dev/null || true
+mkdir -p /var/lib/tester /etc/tester
+chmod 0700 /etc/tester

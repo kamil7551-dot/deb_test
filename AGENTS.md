@@ -42,30 +42,35 @@ Target image size: under 1 GB, so it loads fast from USB 2.0.
 | Config format | YAML for profiles and station config; JSON for reports |
 | Time | Always UTC, ISO 8601 with `Z` |
 | Branches | `main` is releasable; work on feature branches and open a PR |
+| Module imports | Interactive modules import GTK/GStreamer inside `build()` only, so headless mode and CI work without GTK |
+| Shell helper | Import `tester.core.util.run` as `sh` in modules (a module's own `run()` would shadow it) |
 | Commits | Small, imperative subject line ("Add TPM module"), body says why |
 
-## Planned repository layout
-
-The layout below is the target. Create directories as the work reaches them and update this section if it changes.
+## Repository layout
 
 ```
 AGENTS.md              this file
 INSTRUCTIONS.md        product spec: what the tester must do
 ROADMAP.md             phases, status, changelog, open questions
-live-build/            Debian live-build config (package lists, hooks, bootloaders)
-  config/package-lists/  *.list.chroot, one file per concern, with size notes
-  config/hooks/          build-time hooks (strip firmware, set kiosk, etc.)
-app/                   the tester application (installed to /opt/tester)
-  tester/core/           engine: profile loader, pipeline runner, report builder
-  tester/ui/             GTK4 screens (start, test list, test views, summary)
-  tester/modules/        one file per test module (see module contract)
-  tester/upload/         ProSpectra client + offline queue
-  tests/                 unit tests runnable without hardware (fixtures of dmidecode etc.)
-profiles/              default test profiles (*.yaml), copied to the config partition
-config.example/        example station config (no secrets)
-schemas/               JSON Schema of the report, versioned
-.github/workflows/     CI: lint, unit tests, ISO build, size check
+app/tester/            the tester application (copied to /opt/tester in the image)
+  __main__.py            entry point: UI, --headless, --list, --flush, --setup
+  setup.py               boot-time setup: TESTERCFG mount, token, Wi-Fi profiles
+  core/                  engine: module contract, profiles, runner, report builder, config, helpers
+  modules/               one file per test module (auto: sysinfo, bios, memory, tpm, storage, battery,
+                         network; interactive: display, keyboard, touchpad, camera, audio, gpu)
+  upload/                ProSpectra client (urllib) + offline queue
+  ui/                    GTK4 kiosk UI (app.py) and style.css
+app/tests/             pytest unit tests + fixtures/ (recorded command output from real tools)
+profiles/              built-in test profiles (*.yaml)
+config.example/        TESTERCFG folder template (no secrets)
+live-build/            Debian live-build config: auto/, package-lists, hooks, systemd units
+tools/build-iso.sh     builds out/itad-tester-<version>.iso (root, Debian trixie), enforces the 1 GB budget
+tools/make-usb.sh      writes the ISO to a stick and adds the TESTERCFG partition
+.github/workflows/     CI: lint + tests + headless smoke run, then ISO build in a privileged trixie container
 ```
+
+Run locally without hardware: `cd app && TESTER_DATA_DIR=/tmp/td TESTER_PROFILES=../profiles python3 -m tester --headless --profile quick`.
+The UI runs on any Linux desktop with GTK4 + PyGObject (`python3 -m tester`); it needs `python3-gi-cairo`.
 
 ## How to work on it
 

@@ -1,0 +1,33 @@
+TPM2_PT_FAMILY_INDICATOR:
+  raw: 0x322E3000
+  value: "2.0"
+TPM2_PT_LEVEL:
+  raw: 0
+TPM2_PT_REVISION:
+  raw: 0x8A
+  value: 1.38
+TPM2_PT_DAY_OF_YEAR:
+  raw: 0x8
+TPM2_PT_YEAR:
+  raw: 0x7E2
+TPM2_PT_MANUFACTURER:
+  raw: 0x49465800
+  value: "IFX"
+TPM2_PT_VENDOR_STRING_1:
+  raw: 0x534C4239
+  value: "SLB9"
+TPM2_PT_VENDOR_STRING_2:
+  raw: 0x36373000
+  value: "670"
+TPM2_PT_VENDOR_STRING_3:
+  raw: 0x0
+  value: ""
+TPM2_PT_VENDOR_STRING_4:
+  raw: 0x0
+  value: ""
+TPM2_PT_VENDOR_TPM_TYPE:
+  raw: 0x0
+TPM2_PT_FIRMWARE_VERSION_1:
+  raw: 0x7003D
+TPM2_PT_FIRMWARE_VERSION_2:
+  raw: 0xAE100
