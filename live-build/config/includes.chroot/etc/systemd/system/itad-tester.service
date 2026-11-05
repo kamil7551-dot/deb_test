@@ -1,0 +1,29 @@
+[Unit]
+Description=ITAD tester kiosk (cage + GTK4)
+After=systemd-user-sessions.service itad-tester-setup.service network-pre.target plymouth-quit-wait.service
+Wants=itad-tester-setup.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+User=root
+PAMName=login
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+StandardInput=tty-fail
+StandardOutput=journal
+StandardError=journal
+UtmpIdentifier=tty1
+UtmpMode=user
+Environment=LANG=C.UTF-8
+Environment=XKB_DEFAULT_LAYOUT=pl
+Environment=GTK_THEME=Adwaita:dark
+Environment=GSK_RENDERER=gl
+ExecStart=/usr/bin/cage -d -s -- /usr/local/bin/itad-tester
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

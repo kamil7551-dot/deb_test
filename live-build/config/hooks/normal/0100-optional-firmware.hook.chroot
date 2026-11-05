@@ -1,0 +1,11 @@
+#!/bin/sh
+# Firmware packages whose names changed between Debian releases (split out of firmware-misc-nonfree).
+# Installed one by one so a missing name does not break the build.
+set -e
+for p in firmware-intel-graphics firmware-intel-misc firmware-nvidia-graphics firmware-cirrus firmware-ti-connectivity; do
+  if apt-cache show "$p" >/dev/null 2>&1; then
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends "$p" || echo "W: could not install $p"
+  else
+    echo "I: $p not available in this release"
+  fi
+done

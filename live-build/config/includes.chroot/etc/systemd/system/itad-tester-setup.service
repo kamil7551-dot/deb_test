@@ -1,0 +1,14 @@
+[Unit]
+Description=ITAD tester: mount TESTERCFG, install token and Wi-Fi profiles
+After=local-fs.target systemd-udev-settle.service
+Before=NetworkManager.service itad-tester.service
+Wants=systemd-udev-settle.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=PYTHONPATH=/opt/tester
+ExecStart=/usr/bin/python3 -m tester --setup
+
+[Install]
+WantedBy=multi-user.target

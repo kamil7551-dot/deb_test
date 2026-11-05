@@ -20,8 +20,23 @@ Keep it current: any change in behaviour, formats or contracts is reflected here
 - Boot parameter `toram` by default when RAM ≥ 2 GB, so the stick can be removed after boot; otherwise run from USB.
 - Size budget: **≤ 1 GB ISO**, target 700–850 MB. Largest item is firmware; NVIDIA GSP firmware may be stripped.
 - Kiosk session: the tester app starts full-screen automatically, no desktop environment.
-- A second small FAT32 partition on the stick (label `TESTERCFG`) holds station config, profiles, the token and
-  the offline queue. Mounted at `/var/lib/tester` (queue) and read into `/etc/tester/` at boot.
+- Config storage (`TESTERCFG`) holds station config, profiles, the token, Wi-Fi profiles and the offline queue.
+  At boot `itad-tester-setup.service` (`python3 -m tester --setup`) looks for a partition labelled `TESTERCFG`,
+  otherwise for a `TESTERCFG/` folder on any vfat/exfat/ext4/ntfs partition (Ventoy data partition, second stick),
+  and bind-mounts it at `/var/lib/tester`. The token is copied to `/etc/tester/prospectra.env` (0600) and
+  `wifi/*.nmconnection` to NetworkManager. Without config storage the tester still runs; reports stay in RAM.
+- Kiosk: `itad-tester.service` runs `cage -d -s -- /usr/local/bin/itad-tester` as root on tty1. A debug shell is on
+  tty2 (Ctrl+Alt+F2, user `tester`, password `live`); `itad-tester --headless|--list|--flush` work there.
+
+## USB stick
+
+- Linux: `sudo tools/make-usb.sh /dev/sdX out/itad-tester-<ver>.iso` writes the image and adds a FAT32 `TESTERCFG`
+  partition filled from `config.example/TESTERCFG` (then add `prospectra.env` and `wifi/*.nmconnection`).
+- Windows: write the ISO with Rufus in DD mode and keep `TESTERCFG/` on a second stick, or use Ventoy and put the
+  `TESTERCFG/` folder at the root of the Ventoy partition (with Secure Boot on, Ventoy needs its key enrolled once).
+
+TESTERCFG layout: `config.yaml`, `prospectra.env`, `wifi/*.nmconnection`, `profiles/*.yaml` (overrides),
+`queue/`, `sent/`, `failed/`, `logs/tester.log`, `counter`, `operator` (last operator name).
 
 ## Operator flow
 
@@ -35,6 +50,11 @@ Keep it current: any change in behaviour, formats or contracts is reflected here
 7. Send → ProSpectra, or queue offline. Show the result and link/ID.
 
 Keyboard: Enter = PASS, Esc = FAIL, S = skip, R = repeat. Mouse/touchpad optional (it may be the broken part).
+During the keyboard test the shortcuts are disabled (every key is under test): the test passes automatically when
+all main keys were pressed; a defect or skip is marked with the on-screen buttons.
+The summary screen suggests a grade from the profile's `grade_rules`, lets the operator change grade, result and
+note, then saves the report to the queue and sends it. Without a valid DMI serial the run cannot start until the
+serial is scanned (barcode scanners type like a keyboard).
 
 ## Test modules
 
@@ -62,11 +82,18 @@ one is set needs vendor tools (later module).
 
 Each module is one Python file in `app/tester/modules/` exposing:
 
-- `ID` (str, stable, snake_case), `NAME` (Polish display name), `KIND` (`auto` | `interactive` | `semi`),
-  `CONTRACT = 1`
-- `run(ctx) -> Result` where `Result` has `status` (`pass` | `fail` | `warn` | `skip`), `data` (dict, goes into the
-  report), `note` (str, optional).
-- `ctx` gives: module options from the profile, a logger, a UI handle (interactive only), and shared machine info.
+- `ID` (str, stable, snake_case), `NAME` (Polish display name), `KIND` (`auto` | `interactive`),
+  `CONTRACT = 1`, `ORDER` (int, display order).
+- Automatic: `run(ctx) -> Result` where `Result` has `status` (`pass` | `fail` | `warn` | `skip`), `data` (dict, goes
+  into the report), `note` (str, optional). Runs in a worker thread; `sysinfo` runs first and fills `ctx.machine`
+  (chassis, serial, …), the rest run in parallel. Exceptions are caught and reported as `fail`.
+- Interactive: `build(ctx, finish) -> Gtk.Widget`. The operator's OK/defect/skip creates the Result from
+  `ctx.ui.data` and `ctx.ui.note`; the module may also call `finish(Result)` itself (e.g. keyboard auto-pass).
+  `ctx.ui` offers `set_hint()`, `fullscreen(widget)`/`restore()`, `capture_keys`, `on_cleanup(cb)`;
+  `ctx.ui.data["_pass_as_warn"] = True` turns an operator OK into `warn` (e.g. GPU without acceleration).
+  Import GTK/GStreamer inside `build()` only.
+- Optional `available(ctx) -> str | None`: return a reason to skip (e.g. no touchpad on desktops).
+- `ctx` gives: module options from the profile, a logger, `ctx.ui` (interactive only), and shared `ctx.machine`.
 
 The engine knows nothing module-specific. Adding a test = new file + entry in a profile.
 
@@ -100,19 +127,19 @@ A profile may be auto-selected by chassis type from DMI (laptop vs desktop).
 
 ## Station config
 
-`TESTERCFG/config.yaml` (example in `config.example/`, never with real secrets):
+`TESTERCFG/config.yaml` (template in `config.example/TESTERCFG/`, never with real secrets):
 
 ```yaml
-station: Stanowisko 1
-operator_prompt: true
+station: Stanowisko 1          # also used in run_id and User-Agent
+operator_prompt: true          # ask for the operator name on the start screen
+default_profile: null          # null = pick by chassis type
 prospectra:
   base_url: https://prospectra-ai.app/api/ext/v1
-  token_file: prospectra.env     # contains PROSPECTRA_TOKEN=psk_live_...
-wifi:
-  nmconnection: firma.nmconnection
 ```
 
-At boot the token is copied to `/etc/tester/prospectra.env` with mode `0600`.
+The token lives in `TESTERCFG/prospectra.env` (`PROSPECTRA_TOKEN=psk_live_...`) and Wi-Fi in
+`TESTERCFG/wifi/*.nmconnection` (NetworkManager keyfiles). At boot the token is copied to `/etc/tester/prospectra.env`
+with mode `0600`. Profiles accept `order` (start-screen position) and `chassis` (auto-select: laptop, desktop, aio).
 
 ## Report (schema version 1)
 

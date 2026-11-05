@@ -1,0 +1,26 @@
+#!/bin/sh
+# live-build configuration for the ITAD tester image. Run via tools/build-iso.sh (as root).
+set -e
+
+lb config noauto \
+  --mode debian \
+  --distribution trixie \
+  --architectures amd64 \
+  --archive-areas "main contrib non-free non-free-firmware" \
+  --binary-images iso-hybrid \
+  --bootloaders "syslinux,grub-efi" \
+  --uefi-secure-boot enable \
+  --debian-installer none \
+  --memtest none \
+  --firmware-binary false \
+  --firmware-chroot false \
+  --apt-recommends false \
+  --apt-indices false \
+  --cache-packages true \
+  --chroot-squashfs-compression-type xz \
+  --iso-volume "ITAD-TESTER" \
+  --iso-application "ITAD hardware tester" \
+  --iso-publisher "deb_test" \
+  --image-name "itad-tester" \
+  --bootappend-live "boot=live components quiet splash toram hostname=itad-tester username=tester live-config.timezone=UTC loglevel=3 systemd.show_status=false" \
+  "${@}"

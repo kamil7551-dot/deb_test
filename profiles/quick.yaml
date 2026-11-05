@@ -1,0 +1,13 @@
+profile: quick
+name: Szybki - tylko konfiguracja
+mode: pipeline
+order: 3
+tests:
+  - sysinfo
+  - bios
+  - memory
+  - tpm
+  - storage
+  - battery
+  - network: { scan: false }
+upload: auto

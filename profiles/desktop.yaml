@@ -1,0 +1,19 @@
+profile: desktop
+name: Komputer stacjonarny
+mode: pipeline
+order: 2
+chassis: [desktop, aio]
+tests:
+  - sysinfo
+  - bios
+  - memory
+  - tpm
+  - storage: { required: false }
+  - network: { wifi_required: false }
+  - audio
+  - gpu: { duration_s: 20 }
+grade_rules:
+  - if: storage.status == fail
+    max_grade: C
+    reason: Dysk do wymiany
+upload: auto

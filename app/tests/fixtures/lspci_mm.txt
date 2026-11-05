@@ -1,0 +1,3 @@
+00:00.0 "Host bridge [0600]" "Intel Corporation [8086]" "11th Gen Core Processor Host Bridge/DRAM Registers [9a14]" -r01 "Lenovo [17aa]" "Device [22d8]"
+00:02.0 "VGA compatible controller [0300]" "Intel Corporation [8086]" "TigerLake-LP GT2 [Iris Xe Graphics] [9a49]" -r01 "Lenovo [17aa]" "Device [22d8]"
+01:00.0 "3D controller [0302]" "NVIDIA Corporation [10de]" "TU117M [GeForce MX450] [1f97]" -ra1 "Lenovo [17aa]" "Device [22d8]"
