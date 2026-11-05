@@ -33,7 +33,7 @@ move answered questions to Decisions.
 ## Phase 4 — Field testing and 1.0 (next)
 
 - [x] First green ISO build in CI: 602 MiB (2026-11-05, Debian trixie, kernel 6.12)
-- [ ] Automated QEMU boot test in CI (BIOS, UEFI, UEFI + Secure Boot) reaches the start screen
+- [x] Automated QEMU boot test in CI (BIOS, UEFI, UEFI + Secure Boot) reaches the start screen in ~30 s, reads SMBIOS serial, mounts TESTERCFG
 - [ ] Test on at least: one Dell, one HP, one Lenovo laptop, one desktop, one legacy-BIOS-only machine
 - [ ] Fix issues, measure boot time and full-run time, tag v1.0
 
