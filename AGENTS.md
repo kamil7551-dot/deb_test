@@ -53,8 +53,9 @@ AGENTS.md              this file
 INSTRUCTIONS.md        product spec: what the tester must do
 ROADMAP.md             phases, status, changelog, open questions
 app/tester/            the tester application (copied to /opt/tester in the image)
-  __main__.py            entry point: UI, --headless, --list, --flush, --setup
+  __main__.py            entry point: UI, --headless, --list, --flush, --setup, --make-storage
   setup.py               boot-time setup: TESTERCFG mount, token, Wi-Fi profiles
+  bootstick.py           create TESTERCFG on the tester's own boot stick (partition or folder), --make-storage
   core/                  engine: module contract, profiles, runner, report builder, config, helpers
   modules/               one file per test module (auto: sysinfo, bios, memory, tpm, storage, battery,
                          network; interactive: display, keyboard, touchpad, camera, audio, gpu)
@@ -66,7 +67,7 @@ config.example/        TESTERCFG folder template (no secrets)
 live-build/            Debian live-build config: auto/, package-lists, hooks, systemd units
 tools/build-iso.sh     builds out/itad-tester-<version>.iso (root, Debian trixie), enforces the 1 GB budget
 tools/make-usb.sh      writes the ISO to a stick and adds the TESTERCFG partition
-tools/qemu-boot-test.sh boots the ISO in QEMU (bios|uefi|secureboot) and OCRs the start screen
+tools/qemu-boot-test.sh boots the ISO in QEMU (bios|uefi|secureboot; MEDIA=cdrom|usb|usb-raw) and OCRs the start screen
 .github/workflows/     CI: lint + tests + headless smoke run, ISO build in a privileged trixie container, QEMU boot tests, GitHub Release when `__version__` changes on main
 ```
 

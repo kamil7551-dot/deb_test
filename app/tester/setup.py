@@ -88,28 +88,54 @@ def install_secrets(data: Path) -> None:
         log.info("installed %d Wi-Fi profile(s)", len(wifi))
 
 
-def main() -> int:
-    logging.basicConfig(level=logging.INFO, format="%(name)s: %(message)s")
-    state = {"persistent": False}
-    found = find_storage()
-    if found:
-        dev, fs, sub = found
-        if mount(dev, fs, MNT, ro=False):
-            src = MNT / sub if sub else MNT
-            config.DATA_DIR.mkdir(parents=True, exist_ok=True)
-            if sh(["mount", "--bind", str(src), str(config.DATA_DIR)], timeout=10, check_rc=True) is not None:
-                state = {"persistent": True, "device": dev, "fstype": fs, "subdir": sub}
-                log.info("config storage: %s (%s) %s", dev, fs, sub or "")
-    else:
-        log.warning("no %s storage found; reports will be kept in RAM only", LABEL)
+def _merge_into(src: Path, dst: Path) -> None:
+    """Copy reports/logs collected in RAM before the storage existed; never overwrite."""
+    if not src.is_dir():
+        return
+    for item in src.iterdir():
+        target = dst / item.name
+        if item.is_dir():
+            target.mkdir(exist_ok=True)
+            _merge_into(item, target)
+        elif not target.exists():
+            shutil.copyfile(item, target)
+
+
+def _prepare_data_dir(state: dict) -> dict:
     config.DATA_DIR.mkdir(parents=True, exist_ok=True)
     for d in ("queue", "sent", "failed", "profiles", "logs"):
         (config.DATA_DIR / d).mkdir(exist_ok=True)
     install_secrets(config.DATA_DIR)
     config.STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
     config.STATE_FILE.write_text(yaml.safe_dump(state))
-    return 0
+    return state
 
+
+def attach(dev: str, fs: str, sub: str) -> dict:
+    """Mount the storage and bind it over DATA_DIR, keeping what was already collected in RAM."""
+    state = {"persistent": False}
+    if mount(dev, fs, MNT, ro=False):
+        src = MNT / sub if sub else MNT
+        config.DATA_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            _merge_into(config.DATA_DIR, src)
+        except OSError as exc:
+            log.warning("could not copy RAM data to %s: %s", dev, exc)
+        if sh(["mount", "--bind", str(src), str(config.DATA_DIR)], timeout=10, check_rc=True) is not None:
+            state = {"persistent": True, "device": dev, "fstype": fs, "subdir": sub}
+            log.info("config storage: %s (%s) %s", dev, fs, sub or "")
+    return _prepare_data_dir(state)
+
+
+def main() -> int:
+    logging.basicConfig(level=logging.INFO, format="%(name)s: %(message)s")
+    found = find_storage()
+    if found:
+        attach(*found)
+    else:
+        log.warning("no %s storage found; reports will be kept in RAM only", LABEL)
+        _prepare_data_dir({"persistent": False})
+    return 0
 
 if __name__ == "__main__":
     sys.exit(main())

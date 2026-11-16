@@ -1,0 +1,24 @@
+{
+   "blockdevices": [
+      {
+         "name": "nvme0n1", "path": "/dev/nvme0n1", "type": "disk", "fstype": null, "label": null,
+         "rm": false, "tran": "nvme", "size": 256060514304, "model": "SAMSUNG MZVLB256HBHQ-000L7", "pttype": "gpt",
+         "children": [
+            {"name": "nvme0n1p1", "path": "/dev/nvme0n1p1", "type": "part", "fstype": "vfat", "label": "SYSTEM",
+             "rm": false, "tran": "nvme", "size": 272629760, "model": null, "pttype": "gpt"},
+            {"name": "nvme0n1p3", "path": "/dev/nvme0n1p3", "type": "part", "fstype": "ntfs", "label": "Windows",
+             "rm": false, "tran": "nvme", "size": 254700000000, "model": null, "pttype": "gpt"}
+         ]
+      },
+      {
+         "name": "sdb", "path": "/dev/sdb", "type": "disk", "fstype": "iso9660", "label": "ITAD-TESTER",
+         "rm": true, "tran": "usb", "size": 15502147584, "model": "DataTraveler 3.0", "pttype": "dos",
+         "children": [
+            {"name": "sdb1", "path": "/dev/sdb1", "type": "part", "fstype": "iso9660", "label": "ITAD-TESTER",
+             "rm": true, "tran": "usb", "size": 631209984, "model": null, "pttype": "dos"},
+            {"name": "sdb2", "path": "/dev/sdb2", "type": "part", "fstype": "vfat", "label": null,
+             "rm": true, "tran": "usb", "size": 3407872, "model": null, "pttype": "dos"}
+         ]
+      }
+   ]
+}

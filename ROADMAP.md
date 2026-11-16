@@ -9,6 +9,9 @@ move answered questions to Decisions.
 - [x] Kiosk session that starts the tester app full-screen
 - [x] CI: build the ISO in GitHub Actions, publish it as an artifact, fail if ISO > 1 GB
 - [x] `TESTERCFG` config partition: station config, profiles, token, offline queue
+- [x] Create `TESTERCFG` on the tester's own boot stick from the start screen (F9, with confirmation), so one stick
+      written with Rufus/Etcher is enough; CI boots a dd-ed USB stick and lets the tester create it
+- [ ] Export button on the summary/start screen (copy reports as JSON/CSV/PDF to the stick or another USB drive)
 - [x] Engine: profile loader, pipeline runner (auto modules in parallel), manual selection, report builder
 - [x] UI: start screen, mode choice, test list, summary with grade picker
 - [x] Auto modules: `sysinfo`, `bios`, `memory` (dmidecode + SPD), `tpm`, `storage`, `battery`, `network`
@@ -58,9 +61,13 @@ move answered questions to Decisions.
 | 2026-11-05 | Results go to ProSpectra `POST /api/ext/v1/tests` by serial number, per-station `tests:write` token; no separate handshake/project selection |
 | 2026-11-05 | Kiosk = cage (Wayland) running the GTK4 app as root; camera via GStreamer appsink; GPU test via glmark2-es2-wayland; audio via ALSA tools |
 | 2026-11-05 | Config storage = partition labelled TESTERCFG or a TESTERCFG/ folder (Ventoy/second stick), bind-mounted at /var/lib/tester |
+| 2026-11-16 | One stick: config storage is created by the tester in the free space of its own boot stick (operator-confirmed, never on internal disks) instead of requiring a second stick or Linux tooling |
 | 2026-11-05 | Repo docs (`AGENTS.md`, `INSTRUCTIONS.md`, `ROADMAP.md`) in English; operator UI in Polish |
 
 ## Changelog
+
+- 2026-11-16 — v0.2.0: tester creates the `TESTERCFG` partition (or folder, Rufus ISO mode) on its own boot stick
+  (start screen F9 / `--make-storage`); image adds `fdisk` + `dosfstools` (~0.5 MB); CI boot tests on a USB stick.
 
 - 2026-11-16 — CI publishes GitHub Release vX.Y.Z with the ISO when a new __version__ lands on main; v0.1.0 released.
 - 2026-11-05 — CI: QEMU boot test (BIOS / UEFI / Secure Boot) with OCR of the start screen; first ISO 602 MiB.

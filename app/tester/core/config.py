@@ -17,6 +17,9 @@ DATA_DIR = Path(os.environ.get("TESTER_DATA_DIR", "/var/lib/tester"))
 BUILTIN_PROFILES = Path(os.environ.get("TESTER_PROFILES", "/opt/tester/profiles"))
 ENV_FILE = Path(os.environ.get("TESTER_ENV_FILE", "/etc/tester/prospectra.env"))
 STATE_FILE = Path(os.environ.get("TESTER_STATE_FILE", "/run/tester/state.yaml"))
+# Template copied onto a new TESTERCFG partition/folder (config.example/TESTERCFG in the repo)
+CFG_TEMPLATE = Path(os.environ.get("TESTER_CFG_TEMPLATE", "/opt/tester/config.example/TESTERCFG"))
+ISO_LABEL = os.environ.get("TESTER_ISO_LABEL", "ITAD-TESTER")   # live-build --iso-volume
 
 DEFAULT_BASE_URL = "https://prospectra-ai.app/api/ext/v1"
 

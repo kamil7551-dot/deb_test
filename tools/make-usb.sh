@@ -2,7 +2,7 @@
 # Write the tester ISO to a USB stick and add a TESTERCFG partition (config, token, Wi-Fi, report queue)
 # in the free space after the image.
 #   sudo tools/make-usb.sh /dev/sdX out/itad-tester-0.1.0.iso [path/to/TESTERCFG]
-# Everything on /dev/sdX is erased. On Windows use Rufus (DD mode) + a second stick or Ventoy instead,
+# Everything on /dev/sdX is erased. On Windows write the ISO with Rufus and let the tester create TESTERCFG (F9),
 # see INSTRUCTIONS.md § USB stick.
 set -eu
 
