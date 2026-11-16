@@ -73,7 +73,7 @@ while [ $t -lt "$TIMEOUT" ]; do
   tesseract "$OUT/screen-$t.png" "$WORK/ocr" >/dev/null 2>&1 || true
   TEXT=$(tr '\n' ' ' < "$WORK/ocr.txt" | tr -s ' ')
   echo "[$MODE/$MEDIA ${t}s] $TEXT" | cut -c1-400
-  if [ "$MEDIA" = usb-raw ] && [ $pressed = 0 ] && echo "$TEXT" | grep -q "(F9)"; then
+  if [ "$MEDIA" = usb-raw ] && [ $pressed = 0 ] && echo "$TEXT" | grep -q "(F9)\|wolnego miejsca"; then
     cp "$OUT/screen-$t.png" "$OUT/offer.png"
     mon "sendkey f9"; sleep 3
     shot "$OUT/confirm.png"
@@ -82,7 +82,8 @@ while [ $t -lt "$TIMEOUT" ]; do
     continue
   fi
   # after Enter: wait until the offer is gone and the footer no longer says "dane tylko w RAM"
-  [ "$MEDIA" = usb-raw ] && [ $pressed = 1 ] && echo "$TEXT" | grep -q "(F9)\|tylko w RAM\|Tworzenie" && continue
+  [ "$MEDIA" = usb-raw ] && [ $pressed = 0 ] && continue
+  [ "$MEDIA" = usb-raw ] && echo "$TEXT" | grep -q "(F9)\|wolnego miejsca\|tylko w RAM\|Tworzenie" && continue
   if echo "$TEXT" | grep -q "Tester ITAD"; then
     cp "$OUT/screen-$t.png" "$OUT/start-screen.png"
     echo "$TEXT" > "$OUT/start-screen.txt"
