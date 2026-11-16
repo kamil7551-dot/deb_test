@@ -7,7 +7,8 @@ from tester.modules import battery, memory, storage, sysinfo, tpm
 
 
 def test_placeholder_serials():
-    for s in ["To be filled by O.E.M.", "Default string", "0123456789", "", None, "00000000", "System Serial Number"]:
+    for s in ["To be filled by O.E.M.", "Default string", "0123456789", "", None, "00000000", "System Serial Number",
+              "11111111", "AAAA-AAAA", "FFFFFFFF"]:
         assert is_placeholder_serial(s), s
     assert not is_placeholder_serial("5CD1234XYZ")
     assert not is_placeholder_serial("PF2ABCDE")

@@ -24,7 +24,7 @@ move answered questions to Decisions.
 - [x] `display`, `keyboard`, `touchpad`, `camera`, `gpu`, `audio`
 - [ ] Keyboard layouts for common business laptops (Dell, HP, Lenovo)
 
-## Phase 3 — ProSpectra upload (done in code, tested against a mock server; needs ProSpectra v31 API live)
+## Phase 3 — ProSpectra upload (done in code; ProSpectra API live since 2026-11-16, v31.2)
 
 - [x] Clock sync gate before upload
 - [x] `GET /units/{serial}` lookup on start screen
@@ -32,6 +32,11 @@ move answered questions to Decisions.
 - [x] Offline queue with `failed/` handling; flush from the start screen ("Wyślij zaległe") and after each run
 - [x] Automatic flush ~15 s after the UI starts (queued reports from earlier runs)
 - [x] Placeholder serial detection + scan prompt
+- [x] Start-screen status from `GET /ping` ("token OK" / "token odrzucony" / "brak połączenia"), not only token-file presence
+- [x] Treat `404` (and `401`/`403`) from `POST /tests` as "waiting" (keep in queue), not `failed/`
+- [x] `is_placeholder_serial`: also reject one character repeated (e.g. `11111111`), as ProSpectra does
+- [x] ASCII-fold `station_slug` (ProSpectra accepts Unicode in `run_id` since v31.2, so this is only hygiene)
+- [ ] First end-to-end run against production: create a token in ProSpectra, send one report, check Magazyn → Testy
 
 ## Phase 4 — Field testing and 1.0 (next)
 
@@ -65,6 +70,12 @@ move answered questions to Decisions.
 | 2026-11-05 | Repo docs (`AGENTS.md`, `INSTRUCTIONS.md`, `ROADMAP.md`) in English; operator UI in Polish |
 
 ## Changelog
+
+- 2026-11-16 — v0.2.1: start-screen token check via ProSpectra `GET /ping`; `401`/`403`/`404` keep the report in
+  the queue instead of `failed/`; placeholder serials include one repeated character; ASCII `station_slug`.
+
+- 2026-11-16 — ProSpectra v31.2 live: `/ping`, `/units/{serial}`, `/tests`, `/tests/{id}/report`; Unicode `run_id`,
+  `device` up to 128 KB. Docs updated; follow-up tasks added to Phase 3.
 
 - 2026-11-16 — v0.2.0: tester creates the `TESTERCFG` partition (or folder, Rufus ISO mode) on its own boot stick
   (start screen F9 / `--make-storage`); image adds `fdisk` + `dosfstools` (~0.5 MB); CI boot tests on a USB stick.

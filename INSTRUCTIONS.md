@@ -204,18 +204,27 @@ One JSON document per run. It is the body sent to ProSpectra `POST /tests`; test
 
 ## ProSpectra integration
 
-ProSpectra is the company CRM/warehouse (Cloudflare Workers + R2). Contract as agreed on 2026-11-05 (ProSpectra v31,
-pending deployment):
+ProSpectra is the company CRM/warehouse (Cloudflare Workers + R2). Contract as agreed on 2026-11-05, **live on
+production since 2026-11-16 (ProSpectra v31.2)**:
 
 - Base URL `https://prospectra-ai.app/api/ext/v1`; header `Authorization: Bearer psk_live_…`; `Content-Type: application/json`;
   fixed `User-Agent`, e.g. `itad-tester/0.1 (stanowisko-1)`.
 - One token per station or USB stick, scope `tests:write` only; created in ProSpectra → Ustawienia → Integracje.
+- `GET /ping` → `{"ok": true, "workspace", "token", "scopes", "server_time"}`; `401` = token missing, wrong or revoked.
+  Use it for the start-screen status ("ProSpectra: token OK") instead of only checking that the token file exists.
 - `GET /units/{serial}` → `{"found": true, "unit": {…, "last_test": {…}}}` or `{"found": false}` (not an error).
 - `POST /tests` with the report → `201` (or `200` for a repeated `run_id`) with `{"test": {"id", "linked", "unit_id", "url"}}`.
   `linked: false` = unit not yet received on PZ; ProSpectra links it automatically later.
 - `PUT /tests/{test_id}/report` with `application/pdf` (≤ 10 MB) for a PDF report or wipe certificate (later).
-- Errors `{ "error": "…", "code": "…" }`: `400` bad request (incl. placeholder serial), `401`, `403`, `413` (JSON > 256 KB),
-  `429` (> 120 req/min per token).
+- Errors `{ "error": "…", "code": "…" }`: `400` bad request (incl. placeholder serial), `401`, `403`, `404`, `413`
+  (request > 256 KB, `device` > 128 KB), `429` (> 120 req/min per token).
+- Server-side validation (v31.2): `run_id` 1–100 chars, letters (Unicode, so Polish letters from the station name are
+  fine), digits and `_ . : -`; `tested_at` ISO 8601, not more than 24 h in the future and not before 2015;
+  `serial` ≤ 80 chars and not a placeholder (`To be filled by O.E.M.`, `Default string`, `0123456789`, shorter than 4
+  characters, or **one character repeated**, e.g. `11111111`); `summary` ≤ 2000; `checks` ≤ 200 items, `name` ≤ 120,
+  `note` ≤ 500; `station`/`operator` ≤ 80.
+- Every request (accepted or rejected) is logged in ProSpectra → Ustawienia → Integracje → „Ostatnie wysyłki” with
+  the rejection reason, which helps when a report lands in `failed/`.
 
 Client rules:
 
@@ -223,7 +232,14 @@ Client rules:
   No valid time → do not send, keep in queue.
 - Retry on network errors, `429`, `5xx` with backoff 2, 4, 8, 16 s, always the same `run_id`.
 - Offline queue: `/var/lib/tester/queue/*.json` on the config partition; delete only after `200`/`201`;
-  on `400`/`401`/`403` move to `failed/` and show the operator. Queue is flushed at next boot with network.
+  on `400`/`413`/`422` (the report itself is bad) move to `failed/` and show the operator.
+  Keep in the queue (state "waiting") on `401`/`403` (token wrong, revoked or without `tests:write`: fix
+  `prospectra.env` and the queue is sent) and on `404` (Magazyn or Integracje module switched off in ProSpectra).
+  Queue is flushed at next boot with network.
+- Start-screen status "ProSpectra: …" comes from `GET /ping` (only with network and a synced clock), cached 60 s
+  when OK and 15 s otherwise: `token OK` · `token odrzucony` (401) · `token bez uprawnień` (403) ·
+  `brak połączenia` · `błąd serwera` · `brak tokenu`.
+- `station_slug` (used in `run_id` and the User-Agent) is ASCII only: `Magazyn Łódź` → `magazyn-lodz`.
 - Send the serial exactly as read from DMI (or scanned); ProSpectra normalises it.
 - `ca-certificates` must be in the image; never disable TLS verification.
 

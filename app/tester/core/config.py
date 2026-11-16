@@ -8,6 +8,7 @@ variable so the app can run on a developer machine.
 from __future__ import annotations
 
 import os
+import unicodedata
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -37,7 +38,10 @@ class StationConfig:
 
     @property
     def station_slug(self) -> str:
-        slug = "".join(ch if ch.isalnum() else "-" for ch in self.station.lower()).strip("-")
+        """ASCII-only slug of the station name, used in run_id and the User-Agent ("Magazyn Łódź" -> "magazyn-lodz")."""
+        name = unicodedata.normalize("NFKD", self.station.lower().replace("ł", "l"))
+        name = name.encode("ascii", "ignore").decode()
+        slug = "".join(ch if ch.isascii() and ch.isalnum() else "-" for ch in name).strip("-")
         while "--" in slug:
             slug = slug.replace("--", "-")
         return slug or "station"

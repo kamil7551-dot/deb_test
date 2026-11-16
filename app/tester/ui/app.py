@@ -25,7 +25,7 @@ from tester.core.runner import Session, overall_result, run_auto, run_module  # 
 from tester.core.util import is_placeholder_serial  # noqa: E402
 from tester.core.util import run as sh  # noqa: E402
 from tester.upload import queue  # noqa: E402
-from tester.upload.prospectra import Client  # noqa: E402
+from tester.upload.prospectra import TOKEN_STATES, Client  # noqa: E402
 
 log = logging.getLogger("tester.ui")
 
@@ -313,16 +313,25 @@ class MainWindow(Gtk.ApplicationWindow):
     def _refresh_status(self) -> bool:
         def work():
             net = (sh(["nmcli", "-t", "-f", "STATE", "general"], timeout=5) or "").strip()
-            return net, queue.clock_ok(), queue.counts()
+            clock = queue.clock_ok()
+            # The token is checked against ProSpectra (GET /ping), not just by the file being there.
+            # Without network or a synced clock TLS cannot work, so do not even try.
+            if not self.client.configured:
+                tok = "missing"
+            elif net.startswith("connected") and clock:
+                tok = self.client.check_token()
+            else:
+                tok = "offline"
+            return net, clock, queue.counts(), tok
 
         def done(res):
             if isinstance(res, Exception):
                 return
-            net, clock, cnt = res
+            net, clock, cnt, tok = res
             bits = [
                 f"Sieć: {'połączono' if net.startswith('connected') else 'brak'}",
                 f"Zegar: {'OK' if clock else 'niezsynchronizowany'}",
-                f"ProSpectra: {'token OK' if self.client.configured else 'brak tokenu'}",
+                f"ProSpectra: {TOKEN_STATES[tok]}",
                 f"Konfiguracja: {'pendrive' if self.cfg.persistent else 'brak partycji TESTERCFG (dane tylko w RAM)'}",
                 f"Kolejka: {cnt['queued']} · wysłane: {cnt['sent']} · odrzucone: {cnt['failed']}",
             ]

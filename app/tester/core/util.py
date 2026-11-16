@@ -37,7 +37,7 @@ def is_placeholder_serial(value: str | None) -> bool:
     norm = normalize_serial(value)
     if norm in PLACEHOLDER_SERIALS:
         return True
-    if set(norm) <= {"0"} or set(norm) <= {"F"} or set(norm) <= {"X"}:
+    if len(set(norm)) == 1:          # one character repeated (00000000, FFFF, 11111111) – ProSpectra rejects it too
         return True
     return len(norm) < 4
 
