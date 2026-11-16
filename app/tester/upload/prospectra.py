@@ -19,7 +19,35 @@ from tester import __version__
 log = logging.getLogger("tester.upload")
 
 RETRY_DELAYS = (2, 4, 8, 16)
-FINAL_ERRORS = {400, 401, 403, 404, 413, 422}   # retrying will not help
+# Errors in the report itself: retrying will not help, the report goes to failed/.
+# Not final (report waits in the queue): 401/403 = token problem (fix prospectra.env and the queue is sent),
+# 404 = Magazyn/Integracje module switched off in ProSpectra.
+FINAL_ERRORS = {400, 413, 422}
+
+# Start-screen status of the ProSpectra connection, from GET /ping.
+TOKEN_STATES = {
+    "missing": "brak tokenu",
+    "ok": "token OK",
+    "rejected": "token odrzucony",
+    "forbidden": "token bez uprawnień",
+    "offline": "brak połączenia",
+    "error": "błąd serwera",
+}
+
+
+def token_state(resp: "Response | None", configured: bool = True) -> str:
+    """Map a GET /ping answer to a TOKEN_STATES key."""
+    if not configured:
+        return "missing"
+    if resp is None or resp.status == 0:
+        return "offline"
+    if resp.status == 200 and (resp.body or {}).get("ok"):
+        return "ok"
+    if resp.status == 401:
+        return "rejected"
+    if resp.status == 403:
+        return "forbidden"
+    return "error"
 
 
 @dataclass
@@ -83,6 +111,23 @@ class Client:
             self._sleep(delay)
             resp = self._request(method, path, body, content_type)
         return resp
+
+    def ping(self) -> Response:
+        """GET /ping: checks the token (401 = wrong or revoked) and returns the server time."""
+        return self._request("GET", "/ping")
+
+    def check_token(self, max_age: float = 60) -> str:
+        """Token state for the start screen, cached so the 5-second status refresh does not hit the API each time."""
+        now = time.monotonic()
+        cached = getattr(self, "_token_cache", None)
+        if cached and now - cached[0] < (max_age if cached[1] == "ok" else 15):
+            return cached[1]
+        state = token_state(self.ping() if self.configured else None, self.configured)
+        self._token_cache = (now, state)
+        return state
+
+    def forget_token_state(self) -> None:
+        self._token_cache = None
 
     def lookup_unit(self, serial: str) -> Response:
         return self._request("GET", "/units/" + urllib.parse.quote(serial, safe=""))

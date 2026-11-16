@@ -109,3 +109,42 @@ def test_queue_waits_without_token(tmp_path, monkeypatch):
     out = queue.flush(Client("https://x", None), tmp_path)
     assert out[0].state == "waiting"
     assert queue.counts(tmp_path)["queued"] == 1
+
+
+def test_queue_token_problem_and_404_keep_report_queued(tmp_path, monkeypatch):
+    """401/403 (token) and 404 (module switched off in ProSpectra) are not the report's fault: keep it queued."""
+    monkeypatch.setattr(config, "DATA_DIR", tmp_path)
+    queue.enqueue(build_report(_session(), config.StationConfig()), tmp_path)
+    for status in (401, 403, 404):
+        client = FakeClient([Response(status, {"error": "x", "code": "y"})])
+        out = queue.flush(client, tmp_path)
+        assert out[0].state == "waiting", status
+        assert queue.counts(tmp_path) == {"queued": 1, "sent": 0, "failed": 0}
+
+
+def test_token_state_from_ping():
+    from tester.upload.prospectra import TOKEN_STATES, token_state
+
+    assert token_state(None, configured=False) == "missing"
+    assert token_state(Response(0, None, "timeout")) == "offline"
+    assert token_state(Response(200, {"ok": True, "token": "Stanowisko 1"})) == "ok"
+    assert token_state(Response(401, {"error": "Token API jest nieprawidłowy"})) == "rejected"
+    assert token_state(Response(403, {"error": "brak uprawnienia"})) == "forbidden"
+    assert token_state(Response(502, None)) == "error"
+    assert TOKEN_STATES["ok"] == "token OK"
+
+
+def test_check_token_calls_ping_and_caches():
+    client = FakeClient([Response(200, {"ok": True}), Response(401, {"error": "x"})])
+    assert client.check_token() == "ok"
+    assert client.check_token() == "ok"            # cached, no second request
+    assert [s[1] for s in client.sent] == ["/ping"]
+    client.forget_token_state()
+    assert client.check_token() == "rejected"
+
+
+def test_station_slug_is_ascii():
+    assert config.StationConfig(station="Magazyn Łódź – stół 2").station_slug == "magazyn-lodz-stol-2"
+    assert config.StationConfig(station="Stanowisko 1").station_slug == "stanowisko-1"
+    assert config.StationConfig(station="ŻÓŁW").station_slug == "zolw"
+    assert config.StationConfig(station="!!!").station_slug == "station"

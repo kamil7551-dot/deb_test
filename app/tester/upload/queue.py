@@ -98,6 +98,10 @@ def send_one(path: Path, client: Client, base: Path | None = None) -> Outcome:
         path.unlink(missing_ok=True)
         return Outcome(run_id, "sent", "Wysłano" if test.get("linked") else "Wysłano (sztuki jeszcze nie ma na PZ)",
                        test.get("url"), test.get("linked"))
+    if resp.status in (401, 403):
+        client.forget_token_state()
+        path.write_text(json.dumps(report, ensure_ascii=False, indent=2))
+        return Outcome(run_id, "waiting", f"Token odrzucony przez ProSpectrę ({resp.message()}) – popraw prospectra.env")
     if resp.status in FINAL_ERRORS:
         report.setdefault("_local", {})["error"] = resp.message()
         (failed_dir / path.name).write_text(json.dumps(report, ensure_ascii=False, indent=2))

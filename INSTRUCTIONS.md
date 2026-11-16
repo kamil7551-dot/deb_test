@@ -232,9 +232,14 @@ Client rules:
   No valid time → do not send, keep in queue.
 - Retry on network errors, `429`, `5xx` with backoff 2, 4, 8, 16 s, always the same `run_id`.
 - Offline queue: `/var/lib/tester/queue/*.json` on the config partition; delete only after `200`/`201`;
-  on `400`/`401`/`403`/`413` move to `failed/` and show the operator. Treat `404` as "wait" (keep in the queue):
-  it means the Magazyn or Integracje module is switched off in ProSpectra, not that the report is bad.
+  on `400`/`413`/`422` (the report itself is bad) move to `failed/` and show the operator.
+  Keep in the queue (state "waiting") on `401`/`403` (token wrong, revoked or without `tests:write`: fix
+  `prospectra.env` and the queue is sent) and on `404` (Magazyn or Integracje module switched off in ProSpectra).
   Queue is flushed at next boot with network.
+- Start-screen status "ProSpectra: …" comes from `GET /ping` (only with network and a synced clock), cached 60 s
+  when OK and 15 s otherwise: `token OK` · `token odrzucony` (401) · `token bez uprawnień` (403) ·
+  `brak połączenia` · `błąd serwera` · `brak tokenu`.
+- `station_slug` (used in `run_id` and the User-Agent) is ASCII only: `Magazyn Łódź` → `magazyn-lodz`.
 - Send the serial exactly as read from DMI (or scanned); ProSpectra normalises it.
 - `ca-certificates` must be in the image; never disable TLS verification.
 
