@@ -73,17 +73,23 @@ while [ $t -lt "$TIMEOUT" ]; do
   tesseract "$OUT/screen-$t.png" "$WORK/ocr" >/dev/null 2>&1 || true
   TEXT=$(tr '\n' ' ' < "$WORK/ocr.txt" | tr -s ' ')
   echo "[$MODE/$MEDIA ${t}s] $TEXT" | cut -c1-400
-  if [ "$MEDIA" = usb-raw ] && [ $pressed = 0 ] && echo "$TEXT" | grep -q "(F9)\|wolnego miejsca"; then
-    cp "$OUT/screen-$t.png" "$OUT/offer.png"
-    mon "sendkey f9"; sleep 3
-    shot "$OUT/confirm.png"
-    mon "sendkey ret"
-    pressed=1; echo "  offer shown, pressed F9 + Enter"
+  if [ "$MEDIA" = usb-raw ] && [ $pressed -lt 3 ] && echo "$TEXT" | grep -q "(F9)\|wolnego miejsca"; then
+    # the offer is on screen: F9 opens the confirmation dialog, Enter picks its default button ("Utwórz")
+    pressed=$((pressed + 1))
+    cp "$OUT/screen-$t.png" "$OUT/offer-$pressed.png"
+    mon "sendkey f9 200"; sleep 4
+    shot "$OUT/confirm-$pressed.png"
+    tesseract "$OUT/confirm-$pressed.png" "$WORK/ocr2" >/dev/null 2>&1 || true
+    DLG=$(tr '\n' ' ' < "$WORK/ocr2.txt" | tr -s ' ')
+    echo "  F9 #$pressed -> $DLG" | cut -c1-300
+    if echo "$DLG" | grep -q "Utworzy\|Anuluj"; then
+      mon "sendkey ret 200"; echo "  dialog shown, pressed Enter"
+    fi
     continue
   fi
   # after Enter: wait until the offer is gone and the footer no longer says "dane tylko w RAM"
   [ "$MEDIA" = usb-raw ] && [ $pressed = 0 ] && continue
-  [ "$MEDIA" = usb-raw ] && echo "$TEXT" | grep -q "(F9)\|wolnego miejsca\|tylko w RAM\|Tworzenie" && continue
+  [ "$MEDIA" = usb-raw ] && [ $pressed -lt 3 ] && echo "$TEXT" | grep -q "(F9)\|wolnego miejsca\|tylko w RAM\|Tworzenie" && continue
   if echo "$TEXT" | grep -q "Tester ITAD"; then
     cp "$OUT/screen-$t.png" "$OUT/start-screen.png"
     echo "$TEXT" > "$OUT/start-screen.txt"
