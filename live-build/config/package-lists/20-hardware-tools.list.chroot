@@ -9,3 +9,6 @@ tpm2-tools
 mokutil
 efibootmgr
 alsa-utils
+# TESTERCFG partition on the boot stick: sfdisk + mkfs.vfat (~0.5 MB)
+fdisk
+dosfstools

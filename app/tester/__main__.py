@@ -31,6 +31,25 @@ def _logging(verbose: bool) -> None:
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s", handlers=handlers)
 
 
+def make_storage(target: str, yes: bool) -> int:
+    from tester import bootstick
+
+    try:
+        stick = bootstick.probe_file(target) if target != "auto" else bootstick.find()
+        if not stick:
+            print("No tester boot stick without TESTERCFG found (or no free space on it).")
+            return 1
+        print(stick.describe())
+        if not yes and input("Create it? Existing partitions are not changed. Type TAK: ").strip() != "TAK":
+            return 1
+        state = bootstick.create(stick)
+    except bootstick.StickError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+    print(f"Done: {state.get('device')}")
+    return 0
+
+
 def headless(args) -> int:
     from tester.core import config, report
     from tester.core.module import discover
@@ -84,6 +103,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--list", action="store_true", help="list modules and profiles")
     p.add_argument("--flush", action="store_true", help="send queued reports")
     p.add_argument("--setup", action="store_true", help="boot-time setup (root)")
+    p.add_argument("--make-storage", nargs="?", const="auto", metavar="IMAGE",
+                   help="create the TESTERCFG partition/folder on the boot stick (root), or in an image file")
+    p.add_argument("--yes", action="store_true", help="do not ask for confirmation (--make-storage)")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
 
@@ -100,6 +122,8 @@ def main(argv: list[str] | None = None) -> int:
         for pr in load_profiles().values():
             print(f"profile {pr.id:14} {pr.mode:9} {', '.join(t.id for t in pr.tests)}")
         return 0
+    if args.make_storage:
+        return make_storage(args.make_storage, args.yes)
     if args.flush:
         from tester.core import config
         from tester.upload import queue

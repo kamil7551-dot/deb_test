@@ -1,0 +1,23 @@
+{
+   "partitiontable": {
+      "label": "dos",
+      "id": "0xa2b214d2",
+      "device": "/dev/sdb",
+      "unit": "sectors",
+      "sectorsize": 512,
+      "partitions": [
+         {
+            "node": "/dev/sdb1",
+            "start": 64,
+            "size": 1232832,
+            "type": "0",
+            "bootable": true
+         },{
+            "node": "/dev/sdb2",
+            "start": 540,
+            "size": 6656,
+            "type": "ef"
+         }
+      ]
+   }
+}

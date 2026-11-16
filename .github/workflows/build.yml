@@ -69,6 +69,11 @@ jobs:
       fail-fast: false
       matrix:
         mode: [bios, uefi, secureboot]
+        media: [cdrom]
+        include:                       # tester on a dd-ed USB stick (Rufus DD / Etcher)
+          - {mode: bios, media: usb}
+          - {mode: secureboot, media: usb}
+          - {mode: uefi, media: usb-raw}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -84,15 +89,15 @@ jobs:
         run: |
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            qemu-system-x86 qemu-utils ovmf tesseract-ocr tesseract-ocr-pol imagemagick mtools dosfstools socat
-      - name: Boot test (${{ matrix.mode }})
-        run: tools/qemu-boot-test.sh out/*.iso ${{ matrix.mode }} out/boot-${{ matrix.mode }}
+            qemu-system-x86 qemu-utils ovmf tesseract-ocr tesseract-ocr-pol imagemagick mtools dosfstools fdisk socat python3-yaml
+      - name: Boot test (${{ matrix.mode }}, ${{ matrix.media }})
+        run: MEDIA=${{ matrix.media }} tools/qemu-boot-test.sh out/*.iso ${{ matrix.mode }} out/boot-${{ matrix.mode }}-${{ matrix.media }}
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: boot-${{ matrix.mode }}
-          path: out/boot-${{ matrix.mode }}
+          name: boot-${{ matrix.mode }}-${{ matrix.media }}
+          path: out/boot-${{ matrix.mode }}-${{ matrix.media }}
           retention-days: 7
 
   release:

@@ -25,8 +25,18 @@ Keep it current: any change in behaviour, formats or contracts is reflected here
   otherwise for a `TESTERCFG/` folder on any vfat/exfat/ext4/ntfs partition (Ventoy data partition, second stick),
   and bind-mounts it at `/var/lib/tester`. The token is copied to `/etc/tester/prospectra.env` (0600) and
   `wifi/*.nmconnection` to NetworkManager. Without config storage the tester still runs; reports stay in RAM.
+- Config storage on the boot stick itself (`tester.bootstick`): when no `TESTERCFG` is found, the start screen offers
+  "Utwórz partycję na dane (F9)". It only targets the disk that carries the tester image (a filesystem labelled with
+  the ISO volume `ITAD-TESTER`) and is removable or on USB; internal disks are never candidates. After the operator
+  confirms on screen (F9 or click, then Enter = yes, Esc = no; no separate window, so it works in the cage kiosk) it either appends one FAT32 partition labelled `TESTERCFG` in the free space after the image
+  (stick written with dd / Rufus DD / Etcher; MBR via `sfdisk --append`, GPT via `sgdisk`) or, on a stick written
+  with Rufus in ISO mode (one FAT32 partition), creates a `TESTERCFG/` folder on it. Existing partitions are not
+  changed. It copies `config.example/TESTERCFG` (shipped at `/opt/tester/config.example`), moves what was already
+  collected in RAM (queue, counter, logs) onto it and switches the running tester to it without a reboot.
+  Same from a shell: `itad-tester --make-storage` (asks to type TAK; `--yes` skips) or
+  `--make-storage IMAGE` on an image file (used by CI). Needs ≥ 64 MB free.
 - Kiosk: `itad-tester.service` runs `cage -d -s -- /usr/local/bin/itad-tester` as root on tty1. A debug shell is on
-  tty2 (Ctrl+Alt+F2, user `tester`, password `live`); `itad-tester --headless|--list|--flush` work there.
+  tty2 (Ctrl+Alt+F2, user `tester`, password `live`); `itad-tester --headless|--list|--flush|--make-storage` work there.
 
 ## USB stick
 
@@ -34,10 +44,17 @@ Download: the ISO and its `.sha256` are attached to each GitHub Release `vX.Y.Z`
 `__version__` reaches main); CI builds of other commits keep the ISO as a workflow artifact for 14 days.
 
 
-- Linux: `sudo tools/make-usb.sh /dev/sdX out/itad-tester-<ver>.iso` writes the image and adds a FAT32 `TESTERCFG`
-  partition filled from `config.example/TESTERCFG` (then add `prospectra.env` and `wifi/*.nmconnection`).
-- Windows: write the ISO with Rufus in DD mode and keep `TESTERCFG/` on a second stick, or use Ventoy and put the
-  `TESTERCFG/` folder at the root of the Ventoy partition (with Secure Boot on, Ventoy needs its key enrolled once).
+One stick is enough. Pick one way:
+
+- Windows / any OS: write the ISO with Rufus in DD mode (ISO mode is untested) or balenaEtcher, boot the
+  tester and press F9 on the start screen ("Utwórz partycję na dane"). From then on reports, logs and config are on
+  the stick; on a Windows PC (10 1703+) the partition shows up as drive `TESTERCFG`, where `prospectra.env` and
+  `wifi/*.nmconnection` can be added and reports copied from `sent/`, `queue/`, `failed/`.
+- Linux: `sudo tools/make-usb.sh /dev/sdX out/itad-tester-<ver>.iso` writes the image and adds the FAT32 `TESTERCFG`
+  partition right away (filled from `config.example/TESTERCFG`).
+- Ventoy: copy the ISO and a `TESTERCFG/` folder to the Ventoy partition (with Secure Boot on, Ventoy needs its key
+  enrolled once).
+- A second stick with a `TESTERCFG` partition or folder also works.
 
 TESTERCFG layout: `config.yaml`, `prospectra.env`, `wifi/*.nmconnection`, `profiles/*.yaml` (overrides),
 `queue/`, `sent/`, `failed/`, `logs/tester.log`, `counter`, `operator` (last operator name).
@@ -53,7 +70,7 @@ TESTERCFG layout: `config.yaml`, `prospectra.env`, `wifi/*.nmconnection`, `profi
 6. Summary screen: green/red list, operator picks grade (A, B, C, D, scrap; profile may suggest), optional note.
 7. Send → ProSpectra, or queue offline. Show the result and link/ID.
 
-Keyboard: Enter = PASS, Esc = FAIL, S = skip, R = repeat. Mouse/touchpad optional (it may be the broken part).
+Keyboard: Enter = PASS, Esc = FAIL, S = skip, R = repeat; on the start screen F9 = create `TESTERCFG` (when offered). Mouse/touchpad optional (it may be the broken part).
 During the keyboard test the shortcuts are disabled (every key is under test): the test passes automatically when
 all main keys were pressed; a defect or skip is marked with the on-screen buttons.
 The summary screen suggests a grade from the profile's `grade_rules`, lets the operator change grade, result and

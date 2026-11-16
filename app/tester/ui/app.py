@@ -161,6 +161,7 @@ class MainWindow(Gtk.ApplicationWindow):
         self.detect_machine()
         GLib.timeout_add_seconds(5, self._refresh_status)
         GLib.timeout_add_seconds(15, self._auto_flush)
+        self.probe_stick()
 
     def _auto_flush(self) -> bool:
         """Send reports left in the queue by earlier runs (e.g. tested offline yesterday)."""
@@ -202,6 +203,23 @@ class MainWindow(Gtk.ApplicationWindow):
         self.unit_lbl = label("", "hint")
         panel.attach(self.unit_lbl, 1, 3, 1, 1)
         root.append(panel)
+
+        # Offer to create the TESTERCFG partition on the boot stick (only when there is no storage yet)
+        self.stick = None
+        self.stick_box = Gtk.Box(spacing=16, visible=False)
+        self.stick_box.add_css_class("panel")
+        self.stick_lbl = label("", "hint")
+        self.stick_lbl.set_hexpand(True)
+        self.stick_box.append(self.stick_lbl)
+        self.stick_state = "offer"          # offer -> confirm -> busy (confirmation inline: no extra window in cage)
+        self.stick_cancel = button("Anuluj (Esc)", None, self.cancel_create_storage)
+        self.stick_cancel.set_valign(Gtk.Align.CENTER)
+        self.stick_cancel.set_visible(False)
+        self.stick_box.append(self.stick_cancel)
+        self.stick_btn = button("Utwórz partycję na dane (F9)", "suggested-action", self.ask_create_storage)
+        self.stick_btn.set_valign(Gtk.Align.CENTER)
+        self.stick_box.append(self.stick_btn)
+        root.append(self.stick_box)
 
         root.append(label("Wybierz profil testu (Enter = podświetlony)", "section"))
         self.profile_box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=4,
@@ -314,6 +332,76 @@ class MainWindow(Gtk.ApplicationWindow):
 
         in_thread(work, done)
         return True
+
+    # ---------- TESTERCFG on the boot stick ----------
+    def probe_stick(self) -> None:
+        if self.cfg.persistent:
+            self.stick_box.set_visible(False)
+            return
+        from tester import bootstick
+
+        def done(stick):
+            self.stick = None if isinstance(stick, Exception) else stick
+            if self.stick:
+                self._show_offer()
+            self.stick_box.set_visible(bool(self.stick))
+
+        in_thread(bootstick.find, done)
+
+    def _show_offer(self) -> None:
+        self.stick_state = "offer"
+        if self.stick.mode == "partition":
+            self.stick_lbl.set_text("Wyniki są teraz tylko w RAM i znikną po wyłączeniu. "
+                                    f"Na tym pendrive jest {self.stick.free_bytes / 1e9:.1f} GB wolnego miejsca: "
+                                    "tester może tam założyć partycję TESTERCFG na wyniki, logi i konfigurację.")
+            self.stick_btn.set_label("Utwórz partycję na dane (F9)")
+        else:
+            self.stick_lbl.set_text("Wyniki są teraz tylko w RAM. Tester może założyć folder TESTERCFG "
+                                    "na tym pendrive na wyniki, logi i konfigurację.")
+            self.stick_btn.set_label("Utwórz folder na dane (F9)")
+        self.stick_btn.set_sensitive(True)
+        self.stick_cancel.set_visible(False)
+
+    def ask_create_storage(self) -> None:
+        """First press (F9 / button) asks for confirmation inside the panel, second press (Enter / button) creates."""
+        if not self.stick or self.stick_state == "busy":
+            return
+        if self.stick_state == "confirm":
+            self.create_storage()
+            return
+        self.stick_state = "confirm"
+        what = "partycję" if self.stick.mode == "partition" else "folder"
+        self.stick_lbl.set_text(f"Na pewno utworzyć {what} TESTERCFG? {self.stick.describe()}.\n"
+                                "Istniejące partycje i system testera zostają bez zmian, dysk testowanego komputera "
+                                "nie jest dotykany. W Windows pendrive będzie widoczny jako dysk TESTERCFG.")
+        self.stick_btn.set_label("Tak, utwórz (Enter)")
+        self.stick_cancel.set_visible(True)
+        self.stick_btn.grab_focus()
+
+    def cancel_create_storage(self) -> None:
+        if self.stick and self.stick_state == "confirm":
+            self._show_offer()
+
+    def create_storage(self) -> None:
+        from tester import bootstick
+
+        stick = self.stick
+        self.stick_state = "busy"
+        self.stick_btn.set_sensitive(False)
+        self.stick_cancel.set_visible(False)
+        self.stick_lbl.set_text("Tworzenie… (do minuty, nie wyjmuj pendrive'a)")
+
+        def done(res):
+            if isinstance(res, Exception):
+                self._show_offer()
+                self.stick_lbl.set_text(f"Nie udało się: {res}")
+                return
+            self.cfg = config.load_config()
+            self.stick_box.set_visible(False)
+            self.stick = None
+            self._refresh_status()
+
+        in_thread(lambda: bootstick.create(stick), done)
 
     def flush_queue(self) -> None:
         self.flush_btn.set_sensitive(False)
@@ -693,6 +781,16 @@ class MainWindow(Gtk.ApplicationWindow):
         if self.stage == "summary" and name in ("return", "kp_enter") and self.btn_send.get_sensitive():
             if not self.summary_entry.has_focus():
                 self.save_and_send()
+                return True
+        if self.stage == "start" and name == "f9":
+            self.ask_create_storage()
+            return True
+        if self.stage == "start" and self.stick_state == "confirm":
+            if name in ("return", "kp_enter"):
+                self.create_storage()
+                return True
+            if name == "escape":
+                self.cancel_create_storage()
                 return True
         if self.stage == "start" and name in ("return", "kp_enter"):
             self.start_default()
