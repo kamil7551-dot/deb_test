@@ -94,3 +94,29 @@ jobs:
           name: boot-${{ matrix.mode }}
           path: out/boot-${{ matrix.mode }}
           retention-days: 7
+
+  release:
+    # Tag vX.Y.Z on main -> GitHub Release with the ISO (stable download link, no expiry).
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: boot-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: itad-tester-iso
+          path: out
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cat > notes.md <<NOTES
+          Bootable ITAD tester image (Debian 13, UEFI + Secure Boot + legacy BIOS).
+          Boot-tested in QEMU on BIOS, UEFI and Secure Boot before publishing.
+
+          How to write it to a USB stick: see INSTRUCTIONS.md, section "USB stick".
+          Check the download: \`sha256sum -c *.sha256\`
+          NOTES
+          gh release create "$GITHUB_REF_NAME" out/*.iso out/*.sha256 --title "ITAD tester $GITHUB_REF_NAME" --notes-file notes.md

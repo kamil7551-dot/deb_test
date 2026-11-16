@@ -62,6 +62,7 @@ move answered questions to Decisions.
 
 ## Changelog
 
+- 2026-11-16 — CI publishes a GitHub Release with the ISO for every vX.Y.Z tag; v0.1.0 released.
 - 2026-11-05 — CI: QEMU boot test (BIOS / UEFI / Secure Boot) with OCR of the start screen; first ISO 602 MiB.
 - 2026-11-05 — v0.1.0: engine, 13 modules (7 auto, 6 interactive), GTK4 UI, ProSpectra client + offline queue,
   live-build config, build/USB scripts, CI (tests + ISO). Not yet booted on real hardware.

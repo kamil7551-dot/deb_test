@@ -30,6 +30,10 @@ Keep it current: any change in behaviour, formats or contracts is reflected here
 
 ## USB stick
 
+Download: the ISO and its `.sha256` are attached to each GitHub Release (tag `vX.Y.Z`); CI builds of other
+commits keep the ISO as a workflow artifact for 14 days.
+
+
 - Linux: `sudo tools/make-usb.sh /dev/sdX out/itad-tester-<ver>.iso` writes the image and adds a FAT32 `TESTERCFG`
   partition filled from `config.example/TESTERCFG` (then add `prospectra.env` and `wifi/*.nmconnection`).
 - Windows: write the ISO with Rufus in DD mode and keep `TESTERCFG/` on a second stick, or use Ventoy and put the
