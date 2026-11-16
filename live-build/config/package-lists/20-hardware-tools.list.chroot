@@ -1,0 +1,11 @@
+# Hardware inspection (~15 MB)
+dmidecode
+i2c-tools
+pciutils
+usbutils
+smartmontools
+nvme-cli
+tpm2-tools
+mokutil
+efibootmgr
+alsa-utils

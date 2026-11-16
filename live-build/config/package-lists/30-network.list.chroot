@@ -1,0 +1,6 @@
+# Network (~25 MB)
+network-manager
+wpasupplicant
+iw
+wireless-regdb
+ethtool

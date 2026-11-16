@@ -1,0 +1,50 @@
+# dmidecode 3.6
+Getting SMBIOS data from sysfs.
+SMBIOS 3.2.0 present.
+
+Handle 0x0022, DMI type 17, 84 bytes
+Memory Device
+	Array Handle: 0x0021
+	Error Information Handle: Not Provided
+	Total Width: 64 bits
+	Data Width: 64 bits
+	Size: 8 GB
+	Form Factor: SODIMM
+	Set: None
+	Locator: DIMM 0
+	Bank Locator: BANK 0
+	Type: DDR4
+	Type Detail: Synchronous Unbuffered (Unregistered)
+	Speed: 3200 MT/s
+	Manufacturer: Samsung
+	Serial Number: 4A1B2C3D
+	Asset Tag: 9876543210
+	Part Number: M471A1K43DB1-CWE    
+	Rank: 1
+	Configured Memory Speed: 2666 MT/s
+	Minimum Voltage: 1.2 V
+	Maximum Voltage: 1.2 V
+	Configured Voltage: 1.2 V
+
+Handle 0x0023, DMI type 17, 84 bytes
+Memory Device
+	Array Handle: 0x0021
+	Total Width: 64 bits
+	Data Width: 64 bits
+	Size: 8 GB
+	Form Factor: SODIMM
+	Locator: DIMM 1
+	Bank Locator: BANK 2
+	Type: DDR4
+	Speed: 3200 MT/s
+	Manufacturer: SK Hynix
+	Serial Number: 11223344
+	Part Number: HMA81GS6DJR8N-XN    
+	Rank: 1
+	Configured Memory Speed: 2666 MT/s
+
+Handle 0x0024, DMI type 17, 84 bytes
+Memory Device
+	Size: No Module Installed
+	Locator: DIMM 2
+	Type: Unknown

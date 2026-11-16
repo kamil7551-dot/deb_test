@@ -1,0 +1,4 @@
+#!/bin/sh
+# Launcher for the tester UI (or pass --headless/--list/--flush for CLI use on tty2).
+export PYTHONPATH=/opt/tester${PYTHONPATH:+:$PYTHONPATH}
+exec /usr/bin/python3 -m tester "$@"

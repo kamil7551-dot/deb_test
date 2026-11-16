@@ -1,0 +1,14 @@
+{
+  "json_format_version": [1, 0],
+  "device": {"name": "/dev/nvme0n1", "type": "nvme", "protocol": "NVMe"},
+  "model_name": "SAMSUNG MZVLB512HBJQ-000L7",
+  "serial_number": "S4ENNX0R123456",
+  "firmware_version": "5M2QEXF7",
+  "smart_status": {"passed": true, "nvme": {"value": 0}},
+  "nvme_smart_health_information_log": {
+    "critical_warning": 0, "temperature": 35, "available_spare": 100, "percentage_used": 3,
+    "data_units_read": 12345678, "data_units_written": 23456789, "power_on_hours": 4321,
+    "media_errors": 0
+  },
+  "power_on_time": {"hours": 4321}
+}

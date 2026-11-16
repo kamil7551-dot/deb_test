@@ -1,0 +1,15 @@
+#!/bin/sh
+# Boot the first menu entry automatically after 3 s (both BIOS/syslinux and UEFI/GRUB menus).
+for f in isolinux/isolinux.cfg isolinux/menu.cfg syslinux/syslinux.cfg; do
+  [ -f "$f" ] && sed -i 's/^timeout .*/timeout 30/I' "$f"
+  [ -f "$f" ] && ! grep -qi '^timeout' "$f" && echo 'timeout 30' >> "$f"
+done
+for f in boot/grub/grub.cfg boot/grub/config.cfg; do
+  [ -f "$f" ] || continue
+  if grep -q 'set timeout' "$f"; then
+    sed -i 's/set timeout=.*/set timeout=3/' "$f"
+  else
+    sed -i '1i set timeout=3\nset default=0' "$f"
+  fi
+done
+exit 0

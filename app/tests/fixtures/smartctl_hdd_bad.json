@@ -1,0 +1,13 @@
+{
+  "device": {"name": "/dev/sda", "type": "sat", "protocol": "ATA"},
+  "model_name": "ST500LM030-2E717D",
+  "serial_number": "WDE1ABCD",
+  "rotation_rate": 5400,
+  "smart_status": {"passed": true},
+  "power_on_time": {"hours": 18000},
+  "ata_smart_attributes": {"table": [
+    {"id": 5, "name": "Reallocated_Sector_Ct", "value": 100, "raw": {"value": 16}},
+    {"id": 9, "name": "Power_On_Hours", "value": 80, "raw": {"value": 18000}},
+    {"id": 197, "name": "Current_Pending_Sector", "value": 100, "raw": {"value": 0}}
+  ]}
+}

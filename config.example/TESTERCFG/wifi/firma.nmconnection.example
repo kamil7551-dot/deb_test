@@ -1,0 +1,19 @@
+# Rename to <name>.nmconnection. NetworkManager keyfile for the company Wi-Fi.
+[connection]
+id=firma
+type=wifi
+autoconnect=true
+
+[wifi]
+mode=infrastructure
+ssid=FIRMA-WIFI
+
+[wifi-security]
+key-mgmt=wpa-psk
+psk=REPLACE_ME
+
+[ipv4]
+method=auto
+
+[ipv6]
+method=auto

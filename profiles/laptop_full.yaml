@@ -1,0 +1,39 @@
+profile: laptop_full
+name: Laptop - pełny test
+mode: pipeline
+order: 1
+chassis: [laptop]
+tests:
+  - sysinfo
+  - bios
+  - memory: { warn_if_speed_below_rated: true }
+  - tpm
+  - storage: { required: false, min_health_pct: 10 }
+  - battery: { warn_below_health_pct: 70, fail_below_health_pct: 0 }
+  - network: { wifi_required: true }
+  - display
+  - keyboard
+  - touchpad
+  - camera
+  - audio
+  - gpu: { duration_s: 20 }
+grade_rules:
+  - if: battery.health_pct < 50
+    max_grade: C
+    reason: Bateria poniżej 50%
+  - if: battery.health_pct < 70
+    max_grade: B
+    reason: Bateria poniżej 70%
+  - if: display.status == fail
+    max_grade: C
+    reason: Usterka matrycy
+  - if: keyboard.status == fail
+    max_grade: C
+    reason: Usterka klawiatury
+  - if: touchpad.status == fail
+    max_grade: C
+    reason: Usterka touchpada
+  - if: storage.status == fail
+    max_grade: C
+    reason: Dysk do wymiany
+upload: auto

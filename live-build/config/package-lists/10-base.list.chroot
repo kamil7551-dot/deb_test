@@ -1,0 +1,13 @@
+# Base live system
+live-boot
+live-config
+live-config-systemd
+systemd-sysv
+systemd-timesyncd
+dbus
+libpam-systemd
+kmod
+util-linux
+ca-certificates
+intel-microcode
+amd64-microcode

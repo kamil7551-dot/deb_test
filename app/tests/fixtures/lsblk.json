@@ -1,0 +1,8 @@
+{"blockdevices": [
+  {"name": "nvme0n1", "type": "disk", "tran": "nvme", "size": 512110190592, "model": "SAMSUNG MZVLB512HBJQ-000L7", "serial": "S4ENNX0R123456", "rota": false, "label": null,
+   "children": [{"name": "nvme0n1p1", "type": "part", "label": "SYSTEM"}]},
+  {"name": "sda", "type": "disk", "tran": "usb", "size": 16008609792, "model": "Flash Disk", "serial": "123", "rota": false, "label": "ITAD-TESTER",
+   "children": [{"name": "sda3", "type": "part", "label": "TESTERCFG"}]},
+  {"name": "sdb", "type": "disk", "tran": "usb", "size": 1000204886016, "model": "Ext HDD", "serial": "X1", "rota": true, "label": null},
+  {"name": "loop0", "type": "loop", "size": 734003200, "rota": false}
+]}

@@ -1,0 +1,13 @@
+TPM2_PT_PERMANENT:
+  ownerAuthSet:              1
+  endorsementAuthSet:        0
+  lockoutAuthSet:            1
+  reserved1:                 0
+  disableClear:              0
+  inLockout:                 0
+  tpmGeneratedEPS:           0
+  reserved2:                 0
+TPM2_PT_STARTUP_CLEAR:
+  phEnable:                  1
+  shEnable:                  1
+  ehEnable:                  1
