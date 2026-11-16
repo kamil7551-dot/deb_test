@@ -74,7 +74,7 @@ while [ $t -lt "$TIMEOUT" ]; do
   TEXT=$(tr '\n' ' ' < "$WORK/ocr.txt" | tr -s ' ')
   echo "[$MODE/$MEDIA ${t}s] $TEXT" | cut -c1-400
   if [ "$MEDIA" = usb-raw ] && [ $pressed -lt 3 ] && echo "$TEXT" | grep -q "(F9)\|wolnego miejsca"; then
-    # the offer is on screen: F9 opens the confirmation dialog, Enter picks its default button ("Utwórz")
+    # the offer is on screen: F9 shows the confirmation in the panel, Enter confirms
     pressed=$((pressed + 1))
     cp "$OUT/screen-$t.png" "$OUT/offer-$pressed.png"
     mon "sendkey f9 200"; sleep 4
@@ -82,8 +82,8 @@ while [ $t -lt "$TIMEOUT" ]; do
     tesseract "$OUT/confirm-$pressed.png" "$WORK/ocr2" >/dev/null 2>&1 || true
     DLG=$(tr '\n' ' ' < "$WORK/ocr2.txt" | tr -s ' ')
     echo "  F9 #$pressed -> $DLG" | cut -c1-300
-    if echo "$DLG" | grep -q "Utworzy\|Anuluj"; then
-      mon "sendkey ret 200"; echo "  dialog shown, pressed Enter"
+    if echo "$DLG" | grep -q "pewno\|Tak, utw\|Anuluj"; then
+      mon "sendkey ret 200"; echo "  confirmation shown, pressed Enter"
     fi
     continue
   fi

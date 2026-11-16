@@ -28,7 +28,7 @@ Keep it current: any change in behaviour, formats or contracts is reflected here
 - Config storage on the boot stick itself (`tester.bootstick`): when no `TESTERCFG` is found, the start screen offers
   "Utwórz partycję na dane (F9)". It only targets the disk that carries the tester image (a filesystem labelled with
   the ISO volume `ITAD-TESTER`) and is removable or on USB; internal disks are never candidates. After the operator
-  confirms in a dialog it either appends one FAT32 partition labelled `TESTERCFG` in the free space after the image
+  confirms on screen (F9 or click, then Enter = yes, Esc = no; no separate window, so it works in the cage kiosk) it either appends one FAT32 partition labelled `TESTERCFG` in the free space after the image
   (stick written with dd / Rufus DD / Etcher; MBR via `sfdisk --append`, GPT via `sgdisk`) or, on a stick written
   with Rufus in ISO mode (one FAT32 partition), creates a `TESTERCFG/` folder on it. Existing partitions are not
   changed. It copies `config.example/TESTERCFG` (shipped at `/opt/tester/config.example`), moves what was already
