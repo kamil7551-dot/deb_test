@@ -30,8 +30,8 @@ Keep it current: any change in behaviour, formats or contracts is reflected here
 
 ## USB stick
 
-Download: the ISO and its `.sha256` are attached to each GitHub Release (tag `vX.Y.Z`); CI builds of other
-commits keep the ISO as a workflow artifact for 14 days.
+Download: the ISO and its `.sha256` are attached to each GitHub Release `vX.Y.Z` (created by CI when a new
+`__version__` reaches main); CI builds of other commits keep the ISO as a workflow artifact for 14 days.
 
 
 - Linux: `sudo tools/make-usb.sh /dev/sdX out/itad-tester-<ver>.iso` writes the image and adds a FAT32 `TESTERCFG`

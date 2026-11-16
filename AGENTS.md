@@ -67,7 +67,7 @@ live-build/            Debian live-build config: auto/, package-lists, hooks, sy
 tools/build-iso.sh     builds out/itad-tester-<version>.iso (root, Debian trixie), enforces the 1 GB budget
 tools/make-usb.sh      writes the ISO to a stick and adds the TESTERCFG partition
 tools/qemu-boot-test.sh boots the ISO in QEMU (bios|uefi|secureboot) and OCRs the start screen
-.github/workflows/     CI: lint + tests + headless smoke run, ISO build in a privileged trixie container, QEMU boot tests
+.github/workflows/     CI: lint + tests + headless smoke run, ISO build in a privileged trixie container, QEMU boot tests, GitHub Release when `__version__` changes on main
 ```
 
 Run locally without hardware: `cd app && TESTER_DATA_DIR=/tmp/td TESTER_PROFILES=../profiles python3 -m tester --headless --profile quick`.
