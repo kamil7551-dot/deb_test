@@ -12,6 +12,9 @@ tests:
   - network: { wifi_required: false }
   - audio
   - gpu: { duration_s: 20 }
+  - cosmetics:
+      parts:
+        - { id: case, name: "Obudowa" }
 grade_rules:
   - if: storage.status == fail
     max_grade: C

@@ -23,6 +23,11 @@ move answered questions to Decisions.
 
 - [x] `display`, `keyboard`, `touchpad`, `camera`, `gpu`, `audio`
 - [ ] Keyboard layouts for common business laptops (Dell, HP, Lenovo)
+- [x] Speakers announce "left" / "right" by voice; LCD defect tick list; touchscreen detect + touch grid test;
+      Bluetooth yes/no; `cosmetics` module: grade A–D per part (LCD, lid, body, palmrest) + notes, yes/no questions
+- [ ] Label printing on a network label printer (layout as the current label, without the word descriptions)
+- [ ] Disk format / wipe (opt-in profile, on-screen confirmation)
+- [ ] ProSpectra: search and Excel export over the new device fields (other thread)
 
 ## Phase 3 — ProSpectra upload (done in code; ProSpectra API live since 2026-11-16, v31.2)
 
@@ -67,9 +72,15 @@ move answered questions to Decisions.
 | 2026-11-05 | Kiosk = cage (Wayland) running the GTK4 app as root; camera via GStreamer appsink; GPU test via glmark2-es2-wayland; audio via ALSA tools |
 | 2026-11-05 | Config storage = partition labelled TESTERCFG or a TESTERCFG/ folder (Ventoy/second stick), bind-mounted at /var/lib/tester |
 | 2026-11-16 | One stick: config storage is created by the tester in the free space of its own boot stick (operator-confirmed, never on internal disks) instead of requiring a second stick or Linux tooling |
+| 2026-11-23 | ISO is built on the owner's VM from the repo + BUILD.md; GitHub Actions is optional |
+| 2026-11-23 | Label shows 4 part grades (LCD, lid, body, palmrest) with notes, no word descriptions |
 | 2026-11-05 | Repo docs (`AGENTS.md`, `INSTRUCTIONS.md`, `ROADMAP.md`) in English; operator UI in Polish |
 
 ## Changelog
+
+- 2026-11-23 — v0.3.0 (in progress): voice left/right, LCD defects, touchscreen test, Bluetooth, visual grading per
+  part (overall grade never better than the worst part), new `device` fields; BUILD.md + `tools/vm-build.sh` for
+  building on a VM (GitHub Actions minutes ran out). Image adds no packages (two 80 KB WAV files).
 
 - 2026-11-16 — v0.2.1: start-screen token check via ProSpectra `GET /ping`; `401`/`403`/`404` keep the report in
   the queue instead of `failed/`; placeholder serials include one repeated character; ASCII `station_slug`.

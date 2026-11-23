@@ -1,7 +1,9 @@
 """Screen test: full-screen colour fields, gradient and grid for dead pixels, banding and backlight bleed.
 
 Space / click / → = next pattern, ← = previous, ↑/↓ = backlight brightness, Esc = stop early.
-After the last pattern the operator judges: Enter = OK, Esc = defect.
+After the last pattern the operator ticks the defects seen (list from the profile option `defects`, default
+DEFECTS) and judges: Enter = OK, Esc = defect. Ticked defects go to data["defects"]; Enter with defects ticked
+is recorded as "warn" (works, but with a cosmetic defect).
 """
 
 from __future__ import annotations
@@ -19,6 +21,12 @@ ORDER = 110
 PATTERNS = [
     ("Czerwony", (1, 0, 0)), ("Zielony", (0, 1, 0)), ("Niebieski", (0, 0, 1)), ("Biały", (1, 1, 1)),
     ("Czarny", (0, 0, 0)), ("Szary 50%", (0.5, 0.5, 0.5)), ("Gradient", "gradient"), ("Siatka", "grid"),
+]
+
+
+DEFECTS = [
+    "Martwe / jasne piksele", "Plamy / mura", "Pasy (pionowe lub poziome)", "Przebarwienia",
+    "Nierówne podświetlenie / prześwity", "Zarysowania", "Pęknięcie", "Ghosting / smużenie",
 ]
 
 
@@ -102,8 +110,24 @@ def build(ctx, finish):
     def done_patterns():
         ui.data["patterns_shown"] = state["seen"]
         ui.restore()
-        ui.set_hint("Czy ekran był bez martwych pikseli, przebarwień i plam? Enter = OK, Esc = usterka")
+        ui.set_hint("Zaznacz zauważone defekty. Enter = ekran OK (defekty kosmetyczne), Esc = usterka")
         info.set_text("Test wzorów zakończony. Możesz go powtórzyć klawiszem R.")
+        defects_box.set_visible(True)
+
+    picked: list[str] = []
+
+    def on_defect(btn, name):
+        if btn.get_active() and name not in picked:
+            picked.append(name)
+        elif not btn.get_active() and name in picked:
+            picked.remove(name)
+        ui.data["defects"] = list(picked)
+        ui.data["_pass_as_warn"] = bool(picked)
+        if picked:
+            ui.note = "Defekty matrycy: " + ", ".join(picked)
+        else:
+            ui.data.pop("defects", None)
+            ui.note = ""
 
     keys = Gtk.EventControllerKey()
 
@@ -132,6 +156,13 @@ def build(ctx, finish):
                            "↑/↓ jasność podświetlenia, Esc = przerwij.", wrap=True)
     info.add_css_class("hint")
     box.append(info)
+    defects_box = Gtk.FlowBox(selection_mode=Gtk.SelectionMode.NONE, max_children_per_line=2, visible=False)
+    defects_box.add_css_class("panel")
+    for name in ctx.options.get("defects") or DEFECTS:
+        cb = Gtk.CheckButton(label=str(name))
+        cb.connect("toggled", on_defect, str(name))
+        defects_box.append(cb)
+    box.append(defects_box)
     again = Gtk.Button(label="Pokaż wzory ponownie")
     again.connect("clicked", lambda *_: start())
     box.append(again)

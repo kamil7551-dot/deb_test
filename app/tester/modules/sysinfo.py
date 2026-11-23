@@ -164,6 +164,21 @@ def format_screen(s: dict | None) -> str | None:
     return " ".join(parts) or None
 
 
+def has_touchscreen(udev_data: Path = Path("/run/udev/data")) -> bool:
+    """An input device tagged ID_INPUT_TOUCHSCREEN=1 by udev (c13:* = input character devices)."""
+    for f in udev_data.glob("c13:*"):
+        if "E:ID_INPUT_TOUCHSCREEN=1" in (read_text(f) or ""):
+            return True
+    return False
+
+
+def has_bluetooth(sys_class: Path = Path("/sys/class")) -> bool:
+    """A Bluetooth controller (hci*) or a Bluetooth rfkill switch (adapter present but blocked or without firmware)."""
+    if any((sys_class / "bluetooth").glob("hci*")):
+        return True
+    return any((read_text(t) or "").strip() == "bluetooth" for t in (sys_class / "rfkill").glob("rfkill*/type"))
+
+
 def run(ctx) -> Result:
     def dmi(key: str) -> str | None:
         return clean(sh(["dmidecode", "-s", key]))
@@ -187,6 +202,8 @@ def run(ctx) -> Result:
         **cpu_info(),
         "gpus": gpu_list(),
         "network": network_adapters(),
+        "touchscreen": has_touchscreen(),
+        "bluetooth": has_bluetooth(),
     }
     mem_kb = re.search(r"MemTotal:\s+(\d+)", read_text("/proc/meminfo") or "")
     if mem_kb:
@@ -197,7 +214,8 @@ def run(ctx) -> Result:
         data["screen"] = format_screen(screen)
     ctx.machine.update({"chassis": data["chassis"], "serial": data["serial"],
                         "serial_placeholder": data["serial_placeholder"], "manufacturer": data["manufacturer"],
-                        "model": data["model"], "has_internal_screen": screen is not None})
+                        "model": data["model"], "has_internal_screen": screen is not None,
+                        "touchscreen": data["touchscreen"]})
     if data["serial_placeholder"]:
         return Result("warn", data, "Numer seryjny w BIOS jest pusty lub zastępczy, zeskanuj go z naklejki")
     return Result("pass", data)

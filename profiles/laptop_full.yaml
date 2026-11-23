@@ -12,11 +12,16 @@ tests:
   - battery: { warn_below_health_pct: 70, fail_below_health_pct: 0 }
   - network: { wifi_required: true }
   - display
+  - touchscreen          # skipped automatically when the laptop has no touchscreen
   - keyboard
   - touchpad
   - camera
   - audio
   - gpu: { duration_s: 20 }
+  - cosmetics:
+      # parts: default LCD, klapa, kadłubek, palmrest
+      questions:
+        - { id: kb_backlight, text: "Podświetlenie klawiatury działa (jeśli jest)?" }
 grade_rules:
   - if: battery.health_pct < 50
     max_grade: C

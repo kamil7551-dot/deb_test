@@ -1,4 +1,4 @@
-"""Audio test: left/right speaker tone, microphone record + playback (ALSA, no sound server needed).
+"""Audio test: left/right speaker voice ("left", "right"), microphone record + playback (ALSA, no sound server needed).
 
 The first analog (non-HDMI) card is chosen by default; the operator can switch the output/input device.
 """
@@ -15,6 +15,7 @@ from tester.core.util import run as sh
 ID = "audio"
 NAME = "Dźwięk i mikrofon"
 KIND = "interactive"
+ASSETS = Path(__file__).resolve().parent.parent / "assets"   # left.wav, right.wav (espeak-ng voice)
 CONTRACT = 1
 ORDER = 150
 
@@ -88,9 +89,16 @@ def build(ctx, finish):
         threading.Thread(target=work, daemon=True).start()
 
     def tone(channel: int):
+        """Say "left" / "right" on that speaker only (assets/*.wav: voice on one channel, the other silent)."""
         d, dev = odev()
         unmute(d["card"])
-        sh(["speaker-test", "-D", dev, "-c", "2", "-s", str(channel), "-t", "sine", "-f", "660", "-l", "1"], timeout=15)
+        wav = ASSETS / ("left.wav" if channel == 1 else "right.wav")
+        if wav.exists():
+            for _ in range(2):
+                sh(["aplay", "-q", "-D", dev, str(wav)], timeout=10)
+        else:
+            sh(["speaker-test", "-D", dev, "-c", "2", "-s", str(channel), "-t", "sine", "-f", "660", "-l", "1"],
+               timeout=15)
 
     def mic():
         if not ins:
@@ -103,7 +111,7 @@ def build(ctx, finish):
         _, dev = odev()
         sh(["aplay", "-q", "-D", dev, str(wav)], timeout=10)
 
-    for text, fn, key in (("Lewy głośnik", lambda: tone(1), "left"), ("Prawy głośnik", lambda: tone(2), "right"),
+    for text, fn, key in (("Lewy głośnik („left”)", lambda: tone(1), "left"), ("Prawy głośnik („right”)", lambda: tone(2), "right"),
                           ("Nagraj 4 s i odtwórz", mic, "mic")):
         b = Gtk.Button(label=text)
         b.connect("clicked", lambda _b, t=text, f=fn, k=key: bg(f"{t}…", f, k))

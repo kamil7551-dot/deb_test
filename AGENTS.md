@@ -2,6 +2,7 @@
 
 Guide for AI agents, CI pipelines and human contributors working on this repository.
 Read this file first, then `INSTRUCTIONS.md` (what we are building) and `ROADMAP.md` (where we are).
+To build the ISO yourself (VM or container, no CI needed) follow `BUILD.md`.
 
 ## Project in one paragraph
 
@@ -18,6 +19,8 @@ Target image size: under 1 GB, so it loads fast from USB 2.0.
    - Change behaviour, requirements, formats or the API contract → update `INSTRUCTIONS.md`.
    - Finish, add, drop or re-order work → update `ROADMAP.md` (tick boxes, add a line to its Changelog).
    - Change repo layout, tooling, conventions or these rules → update `AGENTS.md`.
+   - Change how the image is built (packages, scripts, build host) → update `BUILD.md`. The owner builds on a VM
+     from the repo and BUILD.md alone (GitHub Actions minutes are limited), so it must always work as written.
    A PR that changes behaviour without touching the docs is incomplete.
 2. **Never commit secrets.** ProSpectra tokens (`psk_live_…`), Wi-Fi passwords and station configs live only on
    the USB config partition or in CI secrets. Use `*.example` files with placeholders in the repo.
@@ -52,19 +55,23 @@ Target image size: under 1 GB, so it loads fast from USB 2.0.
 AGENTS.md              this file
 INSTRUCTIONS.md        product spec: what the tester must do
 ROADMAP.md             phases, status, changelog, open questions
+BUILD.md               build the ISO on a Debian VM or in a container, step by step
 app/tester/            the tester application (copied to /opt/tester in the image)
   __main__.py            entry point: UI, --headless, --list, --flush, --setup, --make-storage
   setup.py               boot-time setup: TESTERCFG mount, token, Wi-Fi profiles
   bootstick.py           create TESTERCFG on the tester's own boot stick (partition or folder), --make-storage
   core/                  engine: module contract, profiles, runner, report builder, config, helpers
   modules/               one file per test module (auto: sysinfo, bios, memory, tpm, storage, battery,
-                         network; interactive: display, keyboard, touchpad, camera, audio, gpu)
+                         network; interactive: display, touchscreen, keyboard, touchpad, camera, audio, gpu,
+                         cosmetics)
+  assets/                small data files used by modules (left.wav / right.wav voice prompts, espeak-ng)
   upload/                ProSpectra client (urllib) + offline queue
   ui/                    GTK4 kiosk UI (app.py) and style.css
 app/tests/             pytest unit tests + fixtures/ (recorded command output from real tools)
 profiles/              built-in test profiles (*.yaml)
 config.example/        TESTERCFG folder template (no secrets)
 live-build/            Debian live-build config: auto/, package-lists, hooks, systemd units
+tools/vm-build.sh      one-shot on a Debian trixie VM: build deps, unit tests, then build-iso.sh
 tools/build-iso.sh     builds out/itad-tester-<version>.iso (root, Debian trixie), enforces the 1 GB budget
 tools/make-usb.sh      writes the ISO to a stick and adds the TESTERCFG partition
 tools/qemu-boot-test.sh boots the ISO in QEMU (bios|uefi|secureboot; MEDIA=cdrom|usb|usb-raw) and OCRs the start screen

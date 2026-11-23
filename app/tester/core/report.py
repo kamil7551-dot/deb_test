@@ -56,6 +56,21 @@ def build_device(results: dict) -> dict:
         "screen": sysinfo.get("screen"),
         "gpu": ", ".join(g.get("name", "") for g in sysinfo.get("gpus", [])) or None,
     }
+    # yes/no facts and the operator's visual grading (label + ProSpectra search fields)
+    device["touchscreen"] = sysinfo.get("touchscreen")
+    device["bluetooth"] = sysinfo.get("bluetooth")
+    cam = (results.get("camera") or {}).get("status")
+    if cam in ("pass", "warn", "fail"):
+        device["camera"] = cam != "fail"
+    cos, disp = _data(results, "cosmetics"), _data(results, "display")
+    if cos.get("grades"):
+        device["cosmetic_grades"] = cos["grades"]
+    if cos.get("notes"):
+        device["cosmetic_notes"] = cos["notes"]
+    if cos.get("answers"):
+        device["answers"] = cos["answers"]
+    if disp.get("defects"):
+        device["lcd_defects"] = disp["defects"]
     if battery.get("present"):
         device["battery"] = {k: battery.get(k) for k in ("health_pct", "cycles") if battery.get(k) is not None}
     tester = {
