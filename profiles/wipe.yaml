@@ -1,0 +1,13 @@
+profile: wipe
+name: Format dysku
+mode: pipeline
+order: 4
+# DESTRUCTIVE: wipes internal disks after on-screen confirmation (AGENTS.md rule 7). Only in this profile.
+tests:
+  - sysinfo
+  - storage: { required: true, self_test: short }
+  - wipe:
+      mode: quick          # default on screen: quick | secure
+      fs: ntfs             # ntfs | exfat | none
+      label: DANE
+upload: auto

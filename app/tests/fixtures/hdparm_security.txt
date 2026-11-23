@@ -1,0 +1,20 @@
+/dev/sda:
+
+ATA device, with non-removable media
+	Model Number:       Samsung SSD 860 EVO 500GB
+	Serial Number:      S3Z1NB0K123456X
+Commands/features:
+	Enabled	Supported:
+	   *	SMART feature set
+	    	Security Mode feature set
+Security: 
+	Master password revision code = 65534
+		supported
+	not	enabled
+	not	locked
+	not	frozen
+	not	expired: security count
+		supported: enhanced erase
+	2min for SECURITY ERASE UNIT. 8min for ENHANCED SECURITY ERASE UNIT.
+Logical Unit WWN Device Identifier: 5002538e40a1b2c3
+Checksum: correct

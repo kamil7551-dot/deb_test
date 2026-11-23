@@ -25,8 +25,8 @@ move answered questions to Decisions.
 - [ ] Keyboard layouts for common business laptops (Dell, HP, Lenovo)
 - [x] Speakers announce "left" / "right" by voice; LCD defect tick list; touchscreen detect + touch grid test;
       Bluetooth yes/no; `cosmetics` module: grade A–D per part (LCD, lid, body, palmrest) + notes, yes/no questions
-- [ ] Label printing on a network label printer (layout as the current label, without the word descriptions)
-- [ ] Disk format / wipe (opt-in profile, on-screen confirmation)
+- [x] Label editor + printing (ZPL/TSPL/text over raw TCP; layout without the word descriptions; printer model not fixed yet)
+- [x] Disk format / wipe (opt-in profile, on-screen confirmation): quick (merge partitions) + secure erase; SMART short self-test
 - [ ] ProSpectra: search and Excel export over the new device fields (other thread)
 
 ## Phase 3 — ProSpectra upload (done in code; ProSpectra API live since 2026-11-16, v31.2)
@@ -52,7 +52,7 @@ move answered questions to Decisions.
 
 ## Later (ideas, not committed)
 
-- Disk wipe with certificate (`PUT /tests/{id}/report`), TPM clear via PPI, vendor BIOS tools, label/QR printing,
+- Wipe certificate PDF (`PUT /tests/{id}/report`), TPM clear via PPI, vendor BIOS tools, QR codes on the label,
   English UI.
 
 ## Open questions
@@ -78,7 +78,13 @@ move answered questions to Decisions.
 
 ## Changelog
 
-- 2026-11-23 — v0.3.0 (in progress): voice left/right, LCD defects, touchscreen test, Bluetooth, visual grading per
+- 2026-11-23 — v0.4.0: `wipe` module (destructive, opt-in per profile) — quick format (merge broken partitions into
+  one, new GPT, NTFS/exFAT) and secure erase (NVMe `nvme format`, SATA `hdparm`, else zero overwrite + read-back
+  check), two-step on-screen confirmation; `storage` SMART short self-test (`self_test: short`); label editor and
+  printing (`tester.label`, `label.yaml`, ZPL/TSPL/text over raw TCP, printer model not fixed yet). New `wipe.yaml`
+  profile. Image adds `hdparm`, `ntfs-3g`, `exfatprogs` (~3 MB).
+
+- 2026-11-23 — v0.3.0: voice left/right, LCD defects, touchscreen test, Bluetooth, visual grading per
   part (overall grade never better than the worst part), new `device` fields; BUILD.md + `tools/vm-build.sh` for
   building on a VM (GitHub Actions minutes ran out). Image adds no packages (two 80 KB WAV files).
 

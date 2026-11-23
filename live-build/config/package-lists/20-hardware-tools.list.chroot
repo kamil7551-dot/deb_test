@@ -12,3 +12,7 @@ alsa-utils
 # TESTERCFG partition on the boot stick: sfdisk + mkfs.vfat (~0.5 MB)
 fdisk
 dosfstools
+# Format dysku: secure erase + systemy plików NTFS/exFAT (~3 MB)
+hdparm
+ntfs-3g
+exfatprogs
