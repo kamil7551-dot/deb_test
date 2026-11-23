@@ -151,6 +151,8 @@ class MainWindow(Gtk.ApplicationWindow):
         self.stack.add_named(scrolled(self._build_select()), "select")
         self.stack.add_named(self._build_run(), "run")
         self.stack.add_named(scrolled(self._build_summary()), "summary")
+        self.stack.add_named(scrolled(self._build_label()), "label")
+        self.last_report: dict | None = None
         self.full_holder = Gtk.Box()
         self.stack.add_named(self.full_holder, "full")
 
@@ -556,6 +558,15 @@ class MainWindow(Gtk.ApplicationWindow):
             self.run_bar.set_visible(False)
             self._maybe_summary()
             return
+        m0 = self.queue_interactive[0]
+        if getattr(m0.mod, "WAIT_FOR_AUTO", False) and self.auto_thread and self.auto_thread.is_alive():
+            # e.g. wipe: must not start while the SMART self-test (storage) is still running
+            self.current = None
+            self.run_title.set_text(m0.name)
+            self.run_hint.set_text("Czekam na zakończenie testów automatycznych (np. autotest SMART)…")
+            self.run_bar.set_visible(False)
+            GLib.timeout_add_seconds(2, lambda: (self.next_interactive(), False)[1])
+            return
         self.run_bar.set_visible(True)
         m = self.queue_interactive.pop(0)
         self.current = m
@@ -685,6 +696,9 @@ class MainWindow(Gtk.ApplicationWindow):
         bar.append(Gtk.Box(hexpand=True))
         self.btn_new = button("Nowy test", None, self.new_test)
         bar.append(self.btn_new)
+        self.btn_label = button("Etykieta… (P)", None, self.open_label)
+        self.btn_label.set_sensitive(False)
+        bar.append(self.btn_label)
         bar.append(button("Wyłącz komputer", None, lambda: sh(["systemctl", "poweroff"])))
         self.btn_send = button("Zapisz i wyślij (Enter)", "primary", self.save_and_send)
         bar.append(self.btn_send)
@@ -737,7 +751,10 @@ class MainWindow(Gtk.ApplicationWindow):
             return
         self.btn_send.set_sensitive(False)
         self.btn_back_tests.set_sensitive(False)
+        self.last_report = rep
+        self.btn_label.set_sensitive(True)
         self.send_lbl.set_text(f"Zapisano {path.name}. Wysyłanie do ProSpectry…")
+        self._auto_print(rep)
         if s.profile.upload == "off":
             self.send_lbl.set_text(f"Zapisano {path.name} (wysyłka wyłączona w profilu)")
             return
@@ -760,7 +777,109 @@ class MainWindow(Gtk.ApplicationWindow):
 
         in_thread(lambda: queue.flush(self.client), done)
 
+    # ---------- label ----------
+    def _build_label(self) -> Gtk.Widget:
+        root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin_top=30, margin_bottom=24,
+                       margin_start=50, margin_end=50)
+        root.append(label("Etykieta", "title"))
+        root.append(label("Popraw tekst przed drukiem. Linia zaczynająca się od „# ” jest duża i pogrubiona. "
+                          "Szablon na stałe zmienisz w pliku label.yaml na pendrive (TESTERCFG).", "muted"))
+        self.label_view = Gtk.TextView(monospace=True, vexpand=True, top_margin=8, left_margin=8)
+        frame = Gtk.ScrolledWindow(min_content_height=330, vexpand=True)
+        frame.set_child(self.label_view)
+        root.append(frame)
+        bl = Gtk.Box(spacing=10)
+        bl.append(label("Kod kreskowy:", "big", wrap=False))
+        self.label_barcode = Gtk.Entry(hexpand=True)
+        bl.append(self.label_barcode)
+        root.append(bl)
+        self.label_status = label("", "hint")
+        root.append(self.label_status)
+        bar = Gtk.Box(spacing=12)
+        bar.append(button("Wróć", None, lambda: self.show_stage("summary")))
+        bar.append(Gtk.Box(hexpand=True))
+        bar.append(button("Zapisz do pliku", None, lambda: self.print_label(send=False)))
+        bar.append(button("Drukuj", "primary", lambda: self.print_label(send=True)))
+        root.append(bar)
+        return root
+
+    def _label_lines(self, rep: dict):
+        from tester import label as lbl
+
+        try:
+            tpl = lbl.load_template()
+        except Exception as exc:     # broken label.yaml: show it instead of crashing
+            self.label_status.set_text(f"Błąd w label.yaml: {exc}. Używam szablonu domyślnego.")
+            tpl = {**lbl.DEFAULT}
+        vals = lbl.fields(rep, tpl.get("timezone", "Europe/Warsaw"))
+        lines = lbl.render(tpl.get("lines") or [], vals)
+        barcode = lbl.render([str(tpl.get("barcode") or "")], vals)[0]
+        return tpl, lines, barcode
+
+    def open_label(self) -> None:
+        if not self.last_report:
+            return
+        from tester import label as lbl
+
+        self.label_status.set_text("")
+        tpl, lines, barcode = self._label_lines(self.last_report)
+        self.label_view.get_buffer().set_text("\n".join(lines))
+        self.label_barcode.set_text(barcode)
+        p = lbl.Printer.from_template(tpl)
+        self.label_status.set_text(f"Drukarka: {p.host}:{p.port} ({p.language.upper()}, {p.width_mm:g}×{p.height_mm:g} mm)"
+                                   if p.host else "Brak adresu drukarki w label.yaml: „Drukuj” tylko zapisze plik.")
+        self.show_stage("label")
+        self.label_view.grab_focus()
+
+    def print_label(self, send: bool) -> None:
+        from tester import label as lbl
+
+        buf = self.label_view.get_buffer()
+        lines = buf.get_text(buf.get_start_iter(), buf.get_end_iter(), False).split("\n")
+        try:
+            tpl = lbl.load_template()
+        except Exception as exc:
+            self.label_status.set_text(f"Błąd w label.yaml: {exc}")
+            return
+        p = lbl.Printer.from_template(tpl)
+        payload = lbl.encode(lines, self.label_barcode.get_text().strip(), p)
+        rid = (self.last_report or {}).get("run_id", "")
+        try:
+            path = lbl.save(rid, payload, p)
+        except OSError as exc:
+            self.label_status.set_text(f"Nie można zapisać etykiety: {exc}")
+            return
+        if not send or not p.host:
+            self.label_status.set_text(f"Zapisano {path.name} w labels/ na pendrive.")
+            return
+        self.label_status.set_text(f"Wysyłanie do {p.host}…")
+        in_thread(lambda: lbl.send(payload, p),
+                  lambda res: self.label_status.set_text(f"Błąd drukarki: {res}" if isinstance(res, Exception)
+                                                         else f"Wysłano na drukarkę {p.host} (kopia: {path.name})"))
+
+    def _auto_print(self, rep: dict) -> None:
+        from tester import label as lbl
+
+        try:
+            tpl = lbl.load_template()
+        except Exception:
+            return
+        p = lbl.Printer.from_template(tpl)
+        if not tpl.get("auto_print") or not p.host:
+            return
+        _, lines, barcode = self._label_lines(rep)
+        payload = lbl.encode(lines, barcode, p)
+        try:
+            lbl.save(rep.get("run_id", ""), payload, p)
+        except OSError:
+            pass
+        in_thread(lambda: lbl.send(payload, p),
+                  lambda res: isinstance(res, Exception) and self.send_lbl.set_text(
+                      self.send_lbl.get_text() + f" · Etykieta: błąd drukarki ({res})"))
+
     def new_test(self) -> None:
+        self.last_report = None
+        self.btn_label.set_sensitive(False)
         self.session = None
         self.cfg = config.load_config()
         self.show_stage("start")
@@ -793,6 +912,10 @@ class MainWindow(Gtk.ApplicationWindow):
             if name == "r" and not typing:
                 self.repeat_current()
                 return True
+        if self.stage == "summary" and name == "p" and self.btn_label.get_sensitive() \
+                and not isinstance(self.get_focus(), Gtk.Text):
+            self.open_label()
+            return True
         if self.stage == "summary" and name in ("return", "kp_enter") and self.btn_send.get_sensitive():
             if not self.summary_entry.has_focus():
                 self.save_and_send()

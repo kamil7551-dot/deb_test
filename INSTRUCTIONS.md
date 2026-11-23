@@ -85,7 +85,7 @@ serial is scanned (barcode scanners type like a keyboard).
 | `bios` | auto | BIOS vendor/version/date, board, UUID, asset tag, boot mode, Secure Boot state | `dmidecode -t 0,1,2,3`, efivars, `mokutil` |
 | `memory` | auto | Slots and modules; SPD decode; rated vs configured speed; mixed modules warning | `dmidecode -t 17`, `decode-dimms` (`ee1004`, `spd5118`) |
 | `tpm` | auto | Present/enabled, version 1.2/2.0, manufacturer, firmware version, owned state | sysfs, `tpm2_getcap` |
-| `storage` | auto | Model, serial, capacity, SMART health, power-on hours | `smartctl`, `nvme-cli` |
+| `storage` | auto | Model, serial, capacity, SMART health, power-on hours; option `self_test: short` runs a SMART short self-test and waits for it (`self_test_wait_s`, default 240), failing on a failed test, warning on timeout | `smartctl`, `nvme-cli` |
 | `battery` | auto | Design vs full capacity (health %), cycles | `/sys/class/power_supply` |
 | `display` | interactive | Full-screen colours, gradient, dead pixels, backlight; then a tick list of LCD defects (option `defects`, default: dead/bright pixels, mura, lines, discolouration, uneven backlight, scratches, crack, ghosting) → `data.defects`; OK with defects = `warn` | GTK4 |
 | `touchscreen` | interactive | Only when a touchscreen is detected: touch every cell of a 6×4 grid, auto-PASS | GTK4 gestures |
@@ -96,6 +96,7 @@ serial is scanned (barcode scanners type like a keyboard).
 | `audio` | interactive | Left/right speaker (a voice says "left" / "right" on that channel only, `app/tester/assets/*.wav` made with espeak-ng), mic record + playback | ALSA `aplay`/`arecord` |
 | `cosmetics` | interactive | Operator grades each part A–D with an optional note (default parts: LCD, lid, body, palmrest; option `parts`) and answers yes/no questions (option `questions`); PASS only when everything is filled in. The suggested overall grade is never better than the worst part | GTK4 |
 | `network` | auto | Wi-Fi/LAN adapters present, optional Wi-Fi scan | `iw`, `ethtool` |
+| `wipe` | interactive | **Destructive, opt-in per profile.** Erase and reformat selected disks (the tester's own boot stick is never shown). *Quick* (`mode: quick`): merge all partitions into one, new GPT, optional filesystem (`fs: ntfs`/`exfat`/`none`, `label`). *Secure* (`mode: secure`): NVMe `nvme format --ses=1`, SATA `hdparm` security erase (enhanced) when supported, otherwise overwrite with zeros, then read-back zero check. Requires picking disks and typing nothing — a two-step on-screen confirmation that names the disk (button enabled after 3 s) | `sfdisk`, `wipefs`, `partx`, `hdparm`, `nvme-cli`, `mkfs.ntfs`/`mkfs.exfat` |
 
 Known limits: soldered RAM (LPDDR) has no SPD, and some business laptops lock SMBus, so SPD may be unavailable;
 the report then says `spd: unavailable`, not an error. BIOS passwords cannot be read from Linux; detecting whether
@@ -118,6 +119,8 @@ Each module is one Python file in `app/tester/modules/` exposing:
   Keys starting with `_` never reach the report. While a text field has focus, S and R are typed, not shortcuts.
   Import GTK/GStreamer inside `build()` only.
 - Optional `available(ctx) -> str | None`: return a reason to skip (e.g. no touchpad on desktops).
+- Optional `WAIT_FOR_AUTO = True`: the UI waits for the auto modules to finish before starting this interactive
+  module (used by `wipe`, which needs `storage`'s disk list and self-test results first).
 - `ctx` gives: module options from the profile, a logger, `ctx.ui` (interactive only), and shared `ctx.machine`.
 
 The engine knows nothing module-specific. Adding a test = new file + entry in a profile.
@@ -255,7 +258,25 @@ Client rules:
 - Send the serial exactly as read from DMI (or scanned); ProSpectra normalises it.
 - `ca-certificates` must be in the image; never disable TLS verification.
 
+## Label (printing)
+
+After a run is saved, the operator can open a label editor on the summary screen (button "Etykieta… (P)" or the
+P key). The label is a text template filled from the saved report, editable on screen, then printed or saved.
+
+- Template `label.yaml` lives on the config storage (`/var/lib/tester/label.yaml`, falls back to
+  `config.example/TESTERCFG/label.yaml`, then a built-in default). Lines are text with `{placeholders}`
+  (see `tester.label.fields`); prefix `# ` makes a big bold line, `? ` drops the line when any placeholder in it
+  is empty. Placeholders include `nr`, `serial`, `manufacturer`, `model`, `operator`, `tested_local`, `station`,
+  `cpu`, `gpu`, `ram_gb`, `disks`, `resolution`, `touchscreen`, `bluetooth`, `battery_1/2`, `lcd_defects`, `notes`,
+  `grade`, `grade_<part>` and `q_<question id>`.
+- `printer`: `language` is `zpl` (Zebra and ZPL-compatible), `tspl` (TSC and many cheap thermal printers) or `text`
+  (plain lines, for line-mode printers or `nc -l 9100`); `host`/`port` (raw TCP, JetDirect, port 9100 default),
+  `width_mm`, `height_mm`, `dpi`, `copies`; `barcode` is a template (default `{serial}`, Code 128). `auto_print: true`
+  prints automatically after each saved run.
+- Without `printer.host` the label is only saved to `/var/lib/tester/labels/<run_id>.<ext>` so it can be printed
+  later. The model of printer is not fixed yet; set `language`/`host` when it is known.
+
 ## Out of scope for now (possible later modules)
 
-Disk wipe (NIST 800-88) with certificate, TPM clear via PPI, vendor BIOS tools (Dell `cctk`, HP BCU, Lenovo WMI)
-for BIOS password/Computrace detection, label/QR printing.
+NIST 800-88 wipe *certificate* (PDF via `PUT /tests/{id}/report`), TPM clear via PPI, vendor BIOS tools
+(Dell `cctk`, HP BCU, Lenovo WMI) for BIOS password/Computrace detection, QR codes on the label.

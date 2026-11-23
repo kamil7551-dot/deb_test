@@ -1,0 +1,43 @@
+# Label printed after "Zapisz i wyślij" (button "Etykieta" on the summary, or automatically with auto_print).
+# Edit freely: every line is text with {placeholders}. Prefix "# " = big bold line, "? " = skip the line when a
+# value in it is empty. Placeholders: nr run_id serial manufacturer model operator station tested_local cpu gpu
+# ram_gb disks screen resolution touchscreen bluetooth camera battery_1 battery_2 lcd_defects notes grade
+# grade_lcd grade_lid grade_body grade_palmrest result summary q_<question id>
+printer:
+  host: ""            # printer IP, e.g. 192.168.10.50; empty = only save to labels/ on this stick
+  port: 9100          # raw TCP (JetDirect)
+  language: zpl       # zpl (Zebra & compatible) | tspl (TSC & compatible) | text
+  width_mm: 62
+  height_mm: 100
+  dpi: 203            # 203 or 300
+  copies: 1
+auto_print: false     # true = print right after saving the report
+timezone: Europe/Warsaw
+barcode: "{serial}"   # what the barcode (Code 128) encodes; "" = no barcode
+lines:
+  - "# {nr}"
+  - "{manufacturer} {model}"
+  - ""
+  - "Testował: {operator}"
+  - "Data i godzina testu: {tested_local}"
+  - "Miejsce: {station}"
+  - ""
+  - "{serial}"
+  - "{cpu}"
+  - "{gpu}"
+  - "? {ram_gb} GB"
+  - "{disks}"
+  - "{resolution}"
+  - "Dotyk: {touchscreen}"
+  - "? Bateria_1: {battery_1}%"
+  - "? Bateria_2: {battery_2}%"
+  - "Bluetooth: {bluetooth}"
+  - "? Defekty matrycy: {lcd_defects}"
+  - ""
+  - "Grade LCD: {grade_lcd}"
+  - "Grade klapa: {grade_lid}"
+  - "Grade kadłubek: {grade_body}"
+  - "Grade palmrest: {grade_palmrest}"
+  - "? Uwagi: {notes}"
+  - ""
+  - "# GRADE: {grade}"

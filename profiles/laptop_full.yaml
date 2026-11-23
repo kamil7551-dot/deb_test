@@ -8,7 +8,7 @@ tests:
   - bios
   - memory: { warn_if_speed_below_rated: true }
   - tpm
-  - storage: { required: false, min_health_pct: 10 }
+  - storage: { required: false, min_health_pct: 10, self_test: short }
   - battery: { warn_below_health_pct: 70, fail_below_health_pct: 0 }
   - network: { wifi_required: true }
   - display

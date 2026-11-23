@@ -60,16 +60,17 @@ app/tester/            the tester application (copied to /opt/tester in the imag
   __main__.py            entry point: UI, --headless, --list, --flush, --setup, --make-storage
   setup.py               boot-time setup: TESTERCFG mount, token, Wi-Fi profiles
   bootstick.py           create TESTERCFG on the tester's own boot stick (partition or folder), --make-storage
+  label.py               device label: fill a template from the report, render ZPL/TSPL/text, print over raw TCP
   core/                  engine: module contract, profiles, runner, report builder, config, helpers
   modules/               one file per test module (auto: sysinfo, bios, memory, tpm, storage, battery,
                          network; interactive: display, touchscreen, keyboard, touchpad, camera, audio, gpu,
-                         cosmetics)
+                         cosmetics, wipe [destructive disk format/erase, opt-in per profile])
   assets/                small data files used by modules (left.wav / right.wav voice prompts, espeak-ng)
   upload/                ProSpectra client (urllib) + offline queue
   ui/                    GTK4 kiosk UI (app.py) and style.css
 app/tests/             pytest unit tests + fixtures/ (recorded command output from real tools)
 profiles/              built-in test profiles (*.yaml)
-config.example/        TESTERCFG folder template (no secrets)
+config.example/        TESTERCFG folder template (no secrets; includes label.yaml print template)
 live-build/            Debian live-build config: auto/, package-lists, hooks, systemd units
 tools/vm-build.sh      one-shot on a Debian trixie VM: build deps, unit tests, then build-iso.sh
 tools/build-iso.sh     builds out/itad-tester-<version>.iso (root, Debian trixie), enforces the 1 GB budget

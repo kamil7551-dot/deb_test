@@ -1,12 +1,15 @@
 """Internal disks: model, serial, capacity, type (NVMe/SSD/HDD), SMART health, wear, power-on hours.
 
 The tester's own USB stick and other USB disks are excluded (option include_usb: true to keep USB disks).
-Options: required (bool, fail when no disk), min_health_pct (int, default 10).
+Options: required (bool, fail when no disk), min_health_pct (int, default 10),
+self_test: short (run the drive's SMART short self-test, ~1-2 min, in the background; a failed self-test = fail),
+self_test_wait_s (int, default 240).
 """
 
 from __future__ import annotations
 
 import json
+import time
 
 from tester.core.module import Result
 from tester.core.util import run as sh
@@ -109,6 +112,54 @@ def parse_smart(js: str) -> dict:
     return out
 
 
+def parse_selftest(js: str) -> dict:
+    """State of the last SMART self-test from `smartctl -j -a` (ATA/SATA and NVMe)."""
+    try:
+        s = json.loads(js)
+    except ValueError:
+        return {"self_test": "unavailable"}
+    nv = s.get("nvme_self_test_log")
+    if nv is not None:
+        if ((nv.get("current_self_test_operation") or {}).get("value") or 0) != 0:
+            return {"self_test": "running", "remaining_pct": 100 - int((nv.get("current_self_test_completion_percent") or 0))}
+        table = nv.get("table") or []
+        if not table:
+            return {"self_test": "none"}
+        res = (table[0].get("self_test_result") or {})
+        return {"self_test": "passed" if res.get("value") == 0 else "failed",
+                "self_test_result": res.get("string")}
+    ata = (s.get("ata_smart_data") or {}).get("self_test") or {}
+    st = ata.get("status") or {}
+    if st.get("remaining_percent") is not None and (st.get("value", 0) >> 4) == 0xF:
+        return {"self_test": "running", "remaining_pct": int(st["remaining_percent"])}
+    table = ((s.get("ata_smart_self_test_log") or {}).get("standard") or {}).get("table") or []
+    if not table:
+        return {"self_test": "none"} if ata else {"self_test": "unavailable"}
+    res = table[0].get("status") or {}
+    return {"self_test": "passed" if res.get("passed") else "failed", "self_test_result": res.get("string")}
+
+
+def run_self_tests(disks: list[dict], wait_s: int, poll_s: float = 10) -> None:
+    """Start a short self-test on every disk, wait until all finish (or wait_s), store the outcome per disk."""
+    started = []
+    for d in disks:
+        if sh(["smartctl", "-t", "short", f"/dev/{d['name']}"], timeout=30) is not None:
+            started.append(d)
+        else:
+            d["self_test"] = "unavailable"
+    deadline = time.monotonic() + wait_s
+    pending = list(started)
+    while pending and time.monotonic() < deadline:
+        time.sleep(poll_s)
+        for d in list(pending):
+            st = parse_selftest(sh(["smartctl", "-j", "-a", f"/dev/{d['name']}"], timeout=60) or "")
+            if st.get("self_test") != "running":
+                d.update(st)
+                pending.remove(d)
+    for d in pending:
+        d["self_test"] = "timeout"
+
+
 def evaluate(disks: list[dict], required: bool, min_health: int) -> tuple[str, str]:
     if not disks:
         return ("fail" if required else "warn"), "Brak dysku wewnętrznego"
@@ -129,6 +180,10 @@ def evaluate(disks: list[dict], required: bool, min_health: int) -> tuple[str, s
             warns.append(f"{label}: {d['media_errors']} błędów nośnika")
         if d.get("smart") == "unavailable":
             warns.append(f"{label}: SMART niedostępny")
+        if d.get("self_test") == "failed":
+            problems.append(f"{label}: autotest SMART nieudany ({d.get('self_test_result') or 'błąd'})")
+        elif d.get("self_test") in ("timeout", "unavailable"):
+            warns.append(f"{label}: autotest SMART {'nie skończył się' if d['self_test'] == 'timeout' else 'niedostępny'}")
     if problems:
         return "fail", "; ".join(problems + warns)
     if warns:
@@ -144,6 +199,8 @@ def run(ctx) -> Result:
         d.update(parse_smart(sh(["smartctl", "-j", "-a", f"/dev/{d['name']}"], timeout=60) or ""))
         if "type" not in d:
             d["type"] = "HDD" if d.get("rotational") else "SSD"
+    if opts.get("self_test") == "short" and disks:
+        run_self_tests(disks, int(opts.get("self_test_wait_s", 240)))
     status, note = evaluate(disks, bool(opts.get("required", False)), int(opts.get("min_health_pct", 10)))
     if status == "warn" and opts.get("smart_required") and any(d.get("smart") == "unavailable" for d in disks):
         status = "fail"

@@ -8,7 +8,7 @@ tests:
   - bios
   - memory
   - tpm
-  - storage: { required: false }
+  - storage: { required: false, self_test: short }
   - network: { wifi_required: false }
   - audio
   - gpu: { duration_s: 20 }
