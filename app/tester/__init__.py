@@ -1,3 +1,3 @@
 """ITAD hardware tester. See INSTRUCTIONS.md in the repository root."""
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"

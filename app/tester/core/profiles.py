@@ -153,4 +153,12 @@ def suggest_grade(profile: Profile, results: dict[str, dict]) -> tuple[str, list
             if idx > grade_idx:
                 grade_idx = idx
             reasons.append(rule.get("reason") or f"{cond} → max {cap}")
+    # never better than the worst part graded by the operator (cosmetics module)
+    parts = ((results.get("cosmetics") or {}).get("data") or {}).get("grades") or {}
+    worst = max((g for g in parts.values() if g in GRADES), key=GRADES.index, default=None)
+    if worst and GRADES.index(worst) > grade_idx:
+        grade_idx = GRADES.index(worst)
+        names = {"lcd": "LCD", "lid": "klapa", "body": "kadłubek", "palmrest": "palmrest"}
+        reasons.append("Najgorszy element: " + ", ".join(names.get(k, k) for k, g in parts.items() if g == worst)
+                       + f" ({worst})")
     return GRADES[grade_idx], reasons

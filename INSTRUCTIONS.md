@@ -81,18 +81,20 @@ serial is scanned (barcode scanners type like a keyboard).
 
 | id | Kind | What it does | Tools |
 | --- | --- | --- | --- |
-| `sysinfo` | auto | Manufacturer, model, serial, CPU, NICs and MACs, USB devices | `dmidecode`, `lscpu`, `lspci`, `lsusb` |
+| `sysinfo` | auto | Manufacturer, model, serial, CPU, NICs and MACs, USB devices, touchscreen yes/no, Bluetooth yes/no | `dmidecode`, `lscpu`, `lspci`, `lsusb`, udev data, `/sys/class/bluetooth`, rfkill |
 | `bios` | auto | BIOS vendor/version/date, board, UUID, asset tag, boot mode, Secure Boot state | `dmidecode -t 0,1,2,3`, efivars, `mokutil` |
 | `memory` | auto | Slots and modules; SPD decode; rated vs configured speed; mixed modules warning | `dmidecode -t 17`, `decode-dimms` (`ee1004`, `spd5118`) |
 | `tpm` | auto | Present/enabled, version 1.2/2.0, manufacturer, firmware version, owned state | sysfs, `tpm2_getcap` |
 | `storage` | auto | Model, serial, capacity, SMART health, power-on hours | `smartctl`, `nvme-cli` |
 | `battery` | auto | Design vs full capacity (health %), cycles | `/sys/class/power_supply` |
-| `display` | interactive | Full-screen colours, gradient, dead pixels, backlight | GTK4 |
+| `display` | interactive | Full-screen colours, gradient, dead pixels, backlight; then a tick list of LCD defects (option `defects`, default: dead/bright pixels, mura, lines, discolouration, uneven backlight, scratches, crack, ghosting) → `data.defects`; OK with defects = `warn` | GTK4 |
+| `touchscreen` | interactive | Only when a touchscreen is detected: touch every cell of a 6×4 grid, auto-PASS | GTK4 gestures |
 | `keyboard` | interactive | On-screen key map lights up pressed keys; PASS when all pressed | `python-evdev` |
 | `touchpad` | interactive | Draw over surface, left/right click, two-finger scroll | libinput/evdev |
 | `camera` | interactive | Live preview, operator judges | GStreamer `v4l2src` |
 | `gpu` | semi-auto | Detect GPU and driver, 30–60 s 3D render, FPS, operator checks artefacts | `glxinfo`, `glmark2` |
-| `audio` | interactive | Left/right speaker, mic record + playback | ALSA / PipeWire |
+| `audio` | interactive | Left/right speaker (a voice says "left" / "right" on that channel only, `app/tester/assets/*.wav` made with espeak-ng), mic record + playback | ALSA `aplay`/`arecord` |
+| `cosmetics` | interactive | Operator grades each part A–D with an optional note (default parts: LCD, lid, body, palmrest; option `parts`) and answers yes/no questions (option `questions`); PASS only when everything is filled in. The suggested overall grade is never better than the worst part | GTK4 |
 | `network` | auto | Wi-Fi/LAN adapters present, optional Wi-Fi scan | `iw`, `ethtool` |
 
 Known limits: soldered RAM (LPDDR) has no SPD, and some business laptops lock SMBus, so SPD may be unavailable;
@@ -111,7 +113,9 @@ Each module is one Python file in `app/tester/modules/` exposing:
 - Interactive: `build(ctx, finish) -> Gtk.Widget`. The operator's OK/defect/skip creates the Result from
   `ctx.ui.data` and `ctx.ui.note`; the module may also call `finish(Result)` itself (e.g. keyboard auto-pass).
   `ctx.ui` offers `set_hint()`, `fullscreen(widget)`/`restore()`, `capture_keys`, `on_cleanup(cb)`;
-  `ctx.ui.data["_pass_as_warn"] = True` turns an operator OK into `warn` (e.g. GPU without acceleration).
+  `ctx.ui.data["_pass_as_warn"] = True` turns an operator OK into `warn` (e.g. GPU without acceleration);
+  `ctx.ui.data["_block_pass"] = "message"` refuses OK and shows the message (e.g. a part not graded yet).
+  Keys starting with `_` never reach the report. While a text field has focus, S and R are typed, not shortcuts.
   Import GTK/GStreamer inside `build()` only.
 - Optional `available(ctx) -> str | None`: return a reason to skip (e.g. no touchpad on desktops).
 - `ctx` gives: module options from the profile, a logger, `ctx.ui` (interactive only), and shared `ctx.machine`.
@@ -182,6 +186,11 @@ One JSON document per run. It is the body sent to ProSpectra `POST /tests`; test
     "ram_gb": 16, "storage": [{ "type": "NVMe", "size_gb": 512, "health_pct": 98 }],
     "screen": "14\" 1920x1080", "gpu": "Intel Iris Xe",
     "battery": { "health_pct": 87, "cycles": 212 },
+    "touchscreen": false, "bluetooth": true, "camera": true,
+    "cosmetic_grades": { "lcd": "A", "lid": "A", "body": "B", "palmrest": "A" },
+    "cosmetic_notes": { "body": "rysa na spodzie" },
+    "lcd_defects": ["Zarysowania"],
+    "answers": { "kb_backlight": true },
     "bios_password": false, "computrace": false,
     "tester": {
       "version": "0.1.0", "report_schema": 1, "profile": "laptop_full", "mode": "pipeline",
@@ -200,6 +209,9 @@ One JSON document per run. It is the body sent to ProSpectra `POST /tests`; test
 
 - `result`: `pass` | `fail` | `partial`. `grade`: `A` | `B` | `C` | `D` | `scrap`. `checks[].status`: `pass` | `fail` | `skip`
   (a module `warn` is sent as `pass` with a note).
+- Added in v0.3.0 (additive, schema stays 1): `touchscreen`, `bluetooth`, `camera` (yes/no), `cosmetic_grades`
+  (A–D per part id), `cosmetic_notes`, `lcd_defects`, `answers` (yes/no questions by id). Fields are left out when
+  the module did not run.
 - `run_id` = station slug + date + local counter; unique per run, reused on every retry of the same run.
 
 ## ProSpectra integration

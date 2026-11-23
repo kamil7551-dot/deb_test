@@ -85,6 +85,7 @@ class UiHelper:
     """What an interactive module may use through ctx.ui.
 
     data/note        → copied into the Result when the operator presses PASS/FAIL/skip
+                       (keys starting with "_" stay local: data["_block_pass"] = "message" refuses PASS)
     set_hint(text)   → instruction line under the test title
     capture_keys     → True disables Enter/Esc/S/R shortcuts (keyboard test needs every key)
     fullscreen(w)    → show widget w over the whole window; restore() goes back
@@ -596,6 +597,10 @@ class MainWindow(Gtk.ApplicationWindow):
         if not self.current or not self.helper:
             return
         note = self.helper.note
+        blocked = self.helper.data.get("_block_pass")
+        if status == "pass" and blocked:          # the module still needs input (e.g. a grade for every part)
+            self.run_hint.set_text(str(blocked))
+            return
         if status == "skip" and not note:
             note = "Pominięty przez operatora"
         # a module can downgrade an operator "OK" to "warn" (e.g. GPU without acceleration)
@@ -781,10 +786,11 @@ class MainWindow(Gtk.ApplicationWindow):
             if name == "escape":
                 self.operator_verdict("fail")
                 return True
-            if name == "s":
+            typing = isinstance(self.get_focus(), Gtk.Text)     # S/R are letters while typing a note
+            if name == "s" and not typing:
                 self.operator_verdict("skip")
                 return True
-            if name == "r":
+            if name == "r" and not typing:
                 self.repeat_current()
                 return True
         if self.stage == "summary" and name in ("return", "kp_enter") and self.btn_send.get_sensitive():
